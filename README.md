@@ -1,5 +1,5 @@
-# IPPlugin.PresentmonFPS
- FPS plugin for InfoPanel using PresentmonFPS
+# InfoPanel.FPS
+FPS plugin for InfoPanel using PresentmonFPS
 
 Plugin: InfoPanel.FPS
 
