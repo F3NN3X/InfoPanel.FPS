@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<EnableDynamicLoading>true</EnableDynamicLoading>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<Platforms>x64</Platforms>
+		<PlatformTarget>AnyCPU</PlatformTarget>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.19" />
+		<PackageReference Include="PresentMonFps" Version="2.0.5" />
+		<PackageReference Include="Vanara.PInvoke.Shared" Version="4.0.5" />
+		<PackageReference Include="Vanara.PInvoke.User32" Version="4.0.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="D:\gitProjects\infopanel\InfoPanel.Plugins\InfoPanel.Plugins.csproj">
+			<Private>false</Private>
+			<ExcludeAssets>runtime</ExcludeAssets>
+		</ProjectReference>
+	</ItemGroup>
+
+</Project>
