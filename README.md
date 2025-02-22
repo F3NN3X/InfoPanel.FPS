@@ -2,8 +2,11 @@
  FPS plugin for InfoPanel using PresentmonFPS
 
 Plugin: InfoPanel.FPS
+
 Version: 1.0.0
+
 Author: F3NN3X
+
 Description: An InfoPanel plugin that leverages PresentMonFps to monitor and display real-time performance metrics for fullscreen applications. Tracks Frames Per Second (FPS), current frame time in milliseconds, and 1% low FPS (99th percentile over 1000 frames). Updates every 1 second to align with InfoPanel’s default refresh rate. Includes retry logic and stall detection for robust operation.
 
 Changelog:
