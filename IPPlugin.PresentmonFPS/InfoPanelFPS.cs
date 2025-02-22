@@ -11,10 +11,16 @@ using static Vanara.PInvoke.User32;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.0.0
+ * Version: 1.0.2
  * Author: F3NN3X
- * Description: An InfoPanel plugin that leverages PresentMonFps to monitor and display real-time performance metrics for fullscreen applications. Tracks Frames Per Second (FPS), current frame time in milliseconds, and 1% low FPS (99th percentile over 1000 frames). Updates every 1 second to align with InfoPanel’s default refresh rate. Includes retry logic and stall detection for robust operation.
+ * Description: An InfoPanel plugin that leverages PresentMonFps to monitor and display real-time performance metrics for fullscreen applications. Tracks Frames Per Second (FPS), current frame time in milliseconds, and 1% low FPS (99th percentile over 1000 frames). Updates frame time and FPS more frequently (every 200ms) while maintaining 1% low FPS calculation stability.
  * Changelog:
+ *   - v1.0.2 (Feb 22, 2025): Improved frame time update frequency.
+ *     - Performance: Reduced UpdateInterval to 200ms from 1s to update FPS and frame time more frequently, enhancing responsiveness of the frame time display.
+ *   - v1.0.1 (Feb 22, 2025): Enhanced stability and consistency.
+ *     - Consistency: Aligned plugin name in constructor with header ("InfoPanel.FPS") and improved description.
+ *     - Robustness: Added null check for FpsInspector results to prevent potential null reference issues; resets frame time queue when switching to a new PID to ensure accurate 1% low FPS for the current application.
+ *     - Logging: Improved retry logging to track when all retries are exhausted before forcing a restart.
  *   - v1.0.0 (Feb 20, 2025): Initial stable release.
  *     - Core Features: Detects fullscreen applications, monitors FPS in real-time, calculates current frame time, and computes 1% low FPS over a 1000-frame sliding window.
  *     - Stability Enhancements: Implements 3 retry attempts with a 1-second delay for FpsInspector errors (e.g., HRESULT 0x800700B7 - "Cannot create a file when that file already exists"), and includes 15-second stall detection with automatic monitoring restarts.
@@ -62,14 +68,14 @@ namespace InfoPanel.Extras
 
         // Constructor that sets up the plugin with a unique identifier, name, and description for integration into InfoPanel
         public FpsPlugin()
-            : base("fps-plugin", "FPS - PresentMonFPS", "Retrieves FPS details using PresentMonFPS. - v1.0.0")
+            : base("fps-plugin", "InfoPanel.FPS", "Retrieves FPS, frame time, and 1% low FPS using PresentMonFPS - v1.0.2")
         { }
 
         // Specifies that this plugin does not rely on an external configuration file; returns null to indicate no config is needed
         public override string? ConfigFilePath => null;
 
-        // Sets the update interval to 1 second, aligning with InfoPanel’s default refresh rate to ensure smooth UI updates
-        public override TimeSpan UpdateInterval => TimeSpan.FromSeconds(1);
+        // Sets the update interval to 200ms for faster polling of FPS and frame time, improving responsiveness
+        public override TimeSpan UpdateInterval => TimeSpan.FromMilliseconds(200);
 
         // Initializes the plugin by starting a background task to monitor FPS; runs continuously until the plugin is closed
         public override void Initialize()
@@ -100,7 +106,7 @@ namespace InfoPanel.Extras
         // Synchronous update method required by BasePlugin; not used as InfoPanel relies on UpdateAsync for asynchronous updates
         public override void Update() => throw new NotImplementedException();
 
-        // Asynchronously updates sensor values every 1 second by polling FPS data from FpsInspector; runs on InfoPanel’s update schedule
+        // Asynchronously updates sensor values every 200ms by polling FPS data from FpsInspector; runs on InfoPanel’s update schedule
         public override async Task UpdateAsync(CancellationToken cancellationToken)
         {
             await GetFpsAsync().ConfigureAwait(false); // Fetches the latest FPS data without blocking the UI thread
@@ -129,6 +135,8 @@ namespace InfoPanel.Extras
                             Console.WriteLine("Stopped previous monitoring task for the old PID");
                         }
                         _currentPid = pid; // Updates the tracked PID to the new fullscreen app
+                        while (_frameTimes.TryDequeue(out _)) { } // Clears the frame time queue to start fresh with the new app
+                        Console.WriteLine("Cleared frame time queue for new PID");
                         await StartMonitoringWithRetryAsync(pid, cancellationToken)
                             .ConfigureAwait(false); // Starts monitoring the new process with retry logic
                     }
@@ -158,7 +166,7 @@ namespace InfoPanel.Extras
                             .ConfigureAwait(false); // Restarts monitoring for the current PID
                     }
 
-                    await Task.Delay(UpdateInterval, cancellationToken).ConfigureAwait(false); // Waits 1 second before checking again, respecting the cancellation token
+                    await Task.Delay(UpdateInterval, cancellationToken).ConfigureAwait(false); // Waits 200ms before checking again, respecting the cancellation token
                 }
             }
             catch (TaskCanceledException) { } // Normal exception when the plugin is closed; silently ignored
@@ -199,6 +207,11 @@ namespace InfoPanel.Extras
                                     fpsRequest,
                                     (result) =>
                                     {
+                                        if (result == null) // Checks for null result from FpsInspector
+                                        {
+                                            Console.WriteLine("FpsInspector returned null result; skipping update");
+                                            return;
+                                        }
                                         float fps = (float)result.Fps; // Extracts the FPS value from the result
                                         float frameTime = 1000.0f / fps; // Calculates frame time in milliseconds (1000/FPS)
                                         _fpsSensor.Value = fps; // Updates the FPS sensor with the latest value
@@ -261,7 +274,7 @@ namespace InfoPanel.Extras
                     }
                     else // Max retries reached; force a restart
                     {
-                        Console.WriteLine($"Max retries reached for PID: {pid}; forcing a restart...");
+                        Console.WriteLine($"All {RetryAttempts} retries exhausted for PID: {pid}; forcing a restart...");
                         _monitoringCts?.Cancel(); // Cancels the failed task
                         _monitoringCts?.Dispose(); // Disposes of the failed task’s token source
                         _monitoringCts = new CancellationTokenSource(); // Prepares a new token source for the restart
@@ -273,6 +286,11 @@ namespace InfoPanel.Extras
                                         new FpsRequest { TargetPid = pid },
                                         (result) =>
                                         {
+                                            if (result == null) // Checks for null result from FpsInspector
+                                            {
+                                                Console.WriteLine("FpsInspector returned null result; skipping update");
+                                                return;
+                                            }
                                             float fps = (float)result.Fps;
                                             float frameTime = 1000.0f / fps;
                                             _fpsSensor.Value = fps;
@@ -322,7 +340,7 @@ namespace InfoPanel.Extras
             }
         }
 
-        // Polls FPS data once per UpdateAsync cycle (every 1 second) to keep the FPS sensor current; other metrics updated via callback
+        // Polls FPS data once per UpdateAsync cycle (every 200ms) to keep the FPS sensor current; other metrics updated via callback
         private async Task GetFpsAsync()
         {
             try
@@ -338,7 +356,7 @@ namespace InfoPanel.Extras
 
                 var fpsRequest = new FpsRequest { TargetPid = pid }; // Prepares a request for a single FPS measurement
                 var fpsResult = await FpsInspector.StartOnceAsync(fpsRequest).ConfigureAwait(false); // Performs a one-time FPS poll
-                _fpsSensor.Value = (float)fpsResult.Fps; // Updates the FPS sensor with the latest value (frame time and 1% low updated separately)
+                _fpsSensor.Value = (float)fpsResult.Fps; // Updates the FPS sensor with the latest value (frame time updated via background task)
             }
             catch (Exception ex)
             {
