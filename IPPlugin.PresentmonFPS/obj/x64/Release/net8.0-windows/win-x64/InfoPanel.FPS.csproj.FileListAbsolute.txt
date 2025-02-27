@@ -11,15 +11,8 @@ D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bi
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\InfoPanel.FPS.runtimeconfig.json
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\InfoPanel.FPS.dll
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\InfoPanel.FPS.pdb
-D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Microsoft.Diagnostics.NETCore.Client.dll
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Microsoft.Diagnostics.FastSerialization.dll
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Microsoft.Diagnostics.Tracing.TraceEvent.dll
-D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Microsoft.Extensions.DependencyInjection.dll
-D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Microsoft.Extensions.DependencyInjection.Abstractions.dll
-D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Microsoft.Extensions.Logging.dll
-D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Microsoft.Extensions.Logging.Abstractions.dll
-D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Microsoft.Extensions.Options.dll
-D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Microsoft.Extensions.Primitives.dll
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\PresentMonFps.dll
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Vanara.Core.dll
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Vanara.PInvoke.Gdi32.dll
@@ -39,3 +32,5 @@ D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\ob
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\obj\x64\Release\net8.0-windows\win-x64\InfoPanel.FPS.pdb
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\obj\x64\Release\net8.0-windows\win-x64\InfoPanel.FPS.genruntimeconfig.cache
 D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\obj\x64\Release\net8.0-windows\win-x64\ref\InfoPanel.FPS.dll
+D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\System.Diagnostics.DiagnosticSource.dll
+D:\gitProjects\InfoPanelPlugins\IPPlugin.PresentmonFPS\IPPlugin.PresentmonFPS\bin\x64\Release\net8.0-windows\win-x64\Vanara.PInvoke.DwmApi.dll

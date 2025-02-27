@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("InfoPanel.FPS")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2464db64104d5515f48e0c3bfa1dde94ce829eed")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3ce928a48c59f03137b09caf20ed25a603a11c97")]
 [assembly: System.Reflection.AssemblyProductAttribute("InfoPanel.FPS")]
 [assembly: System.Reflection.AssemblyTitleAttribute("InfoPanel.FPS")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

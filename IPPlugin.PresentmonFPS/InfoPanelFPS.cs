@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using InfoPanel.Plugins;
@@ -7,39 +8,32 @@ using PresentMonFps;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.User32;
 using static Vanara.PInvoke.DwmApi;
-using System.Runtime.InteropServices;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.0.9
+ * Version: 1.0.11
  * Author: F3NN3X
- * Description: An optimized InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile), 0.1% low FPS (99.9th percentile), and frame time variance over 1000 frames. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
- * Changelog:
+ * Description: An optimized InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile), and frame time variance over 1000 frames. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
+ * Changelog (Recent):
+ *   - v1.0.11 (Feb 27, 2025): Performance and robustness enhancements.
+ *     - Reduced string allocations with format strings in logs.
+ *     - Simplified Initialize by moving initial PID check to StartInitialMonitoringAsync.
+ *     - Optimized GetActiveFullscreenProcessId to synchronous method.
+ *     - Optimized UpdateLowFpsMetrics with single-pass min/max/histogram.
+ *     - Enhanced exception logging with full stack traces.
+ *     - Improved null safety for _cts checks.
+ *     - Added finalizer for unmanaged resource cleanup.
+ *   - v1.0.10 (Feb 27, 2025): Removed 0.1% low FPS calculation.
  *   - v1.0.9 (Feb 24, 2025): Fixed 1% low reset on closure.
- *     - Reset Logic: Ensured immediate ResetSensorsAndQueue before cancellation.
- *     - Histogram: Cleared in ResetSensorsAndQueue to prevent stale percentiles.
- *     - Update Prevention: Blocked post-cancel updates in UpdateFrameTimesAndMetrics.
- *   - v1.0.8 (Feb 24, 2025): Fixed initial startup and reset delays.
- *     - Startup: Moved event hook to Initialize, added immediate PID check.
- *     - Reset: Forced immediate sensor reset on cancellation.
- *   - v1.0.7 (Feb 24, 2025): Added _isMonitoring flag, pre-allocated histogram, field-initialized event hook.
- *   - v1.0.6 (Feb 24, 2025): Fixed monitoring restart on focus regain.
- *   - v1.0.5 (Feb 24, 2025): Optimized performance and structure.
- *   - v1.0.4 (Feb 24, 2025): Added event hooks, new metrics, and improved detection.
- *   - v1.0.3 (Feb 24, 2025): Stabilized resets, 1% low FPS, and update smoothness.
- *   - v1.0.2 (Feb 22, 2025): Improved frame time update frequency.
- *   - v1.0.1 (Feb 22, 2025): Enhanced stability and consistency.
- *   - v1.0.0 (Feb 20, 2025): Initial release.
- * Note: A benign log error ("Array is variable sized and does not follow prefix convention") may appear but does not impact functionality.
+ * Note: Full history in CHANGELOG.md. A benign log error ("Array is variable sized and does not follow prefix convention") may appear but does not impact functionality.
  */
 
-namespace InfoPanel.Extras
+namespace InfoPanel.FPS
 {
     public class FpsPlugin : BasePlugin, IDisposable
     {
         private readonly PluginSensor _fpsSensor = new("fps", "Frames Per Second", 0, "FPS");
         private readonly PluginSensor _onePercentLowFpsSensor = new("1% low fps", "1% Low Frames Per Second", 0, "FPS");
-        private readonly PluginSensor _zeroPointOnePercentLowFpsSensor = new("0.1% low fps", "0.1% Low Frames Per Second", 0, "FPS");
         private readonly PluginSensor _currentFrameTimeSensor = new("current frame time", "Current Frame Time", 0, "ms");
         private readonly PluginSensor _frameTimeVarianceSensor = new("frame time variance", "Frame Time Variance", 0, "ms²");
 
@@ -53,8 +47,8 @@ namespace InfoPanel.Extras
         private DateTime _lastEventTime = DateTime.MinValue;
         private DateTime _lastUpdate = DateTime.MinValue;
 
-        private double _mean;
-        private double _m2;
+        private double _frameTimeMean;
+        private double _frameTimeM2;
         private int _updateCount;
 
         private IntPtr _eventHook;
@@ -69,7 +63,7 @@ namespace InfoPanel.Extras
         private const int EventDebounceMs = 500;
 
         public FpsPlugin()
-            : base("fps-plugin", "InfoPanel.FPS", "Retrieves FPS, frame time, and low FPS metrics using PresentMonFPS - v1.0.9")
+            : base("fps-plugin", "InfoPanel.FPS", "Retrieves FPS, frame time, and low FPS metrics using PresentMonFPS - v1.0.11")
         {
             _winEventProcDelegate = new User32.WinEventProc(WinEventProc);
         }
@@ -82,23 +76,29 @@ namespace InfoPanel.Extras
             _cts = new CancellationTokenSource();
             SetupEventHook();
             _ = StartFPSMonitoringAsync(_cts.Token);
+            _ = StartInitialMonitoringAsync(_cts.Token); // Non-blocking initial PID check
+        }
 
-            // Immediate PID check to start monitoring on launch
-            Task.Run(async () =>
+        private async Task StartInitialMonitoringAsync(CancellationToken cancellationToken)
+        {
+            // Currently synchronous up to StartMonitoringWithRetryAsync; kept async for future expansion
+            uint pid = GetActiveFullscreenProcessId();
+            if (pid != 0 && !_isMonitoring)
             {
-                uint pid = await GetActiveFullscreenProcessIdAsync().ConfigureAwait(false);
-                if (pid != 0 && !_isMonitoring)
-                {
-                    _currentPid = pid;
-                    ResetSensorsAndQueue();
-                    await StartMonitoringWithRetryAsync(pid, _cts.Token).ConfigureAwait(false);
-                }
-            }).ConfigureAwait(false);
+                _currentPid = pid;
+                ResetSensorsAndQueue();
+                await StartMonitoringWithRetryAsync(pid, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         public override void Close() => Dispose();
 
-        public void Dispose()
+        ~FpsPlugin()
+        {
+            Dispose(false);
+        }
+
+        protected virtual void Dispose(bool disposing)
         {
             ResetSensorsAndQueue(); // Immediate reset before cancellation
             _cts?.Cancel();
@@ -110,7 +110,15 @@ namespace InfoPanel.Extras
             _cts?.Dispose();
             _currentPid = 0;
             _isMonitoring = false;
-            Console.WriteLine("Plugin disposed; all sensors reset to 0, PID cleared");
+            if (disposing)
+            {
+                Console.WriteLine("Plugin disposed; all sensors reset to 0, PID cleared");
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 
@@ -119,7 +127,6 @@ namespace InfoPanel.Extras
             var container = new PluginContainer("FPS");
             container.Entries.Add(_fpsSensor);
             container.Entries.Add(_onePercentLowFpsSensor);
-            container.Entries.Add(_zeroPointOnePercentLowFpsSensor);
             container.Entries.Add(_currentFrameTimeSensor);
             container.Entries.Add(_frameTimeVarianceSensor);
             containers.Add(container);
@@ -129,7 +136,7 @@ namespace InfoPanel.Extras
 
         public override async Task UpdateAsync(CancellationToken cancellationToken)
         {
-            uint pid = await GetActiveFullscreenProcessIdAsync().ConfigureAwait(false);
+            uint pid = GetActiveFullscreenProcessId();
             if (pid == 0 && _currentPid != 0)
             {
                 ResetSensorsAndQueue(); // Reset first
@@ -144,10 +151,11 @@ namespace InfoPanel.Extras
                 _cts?.Cancel();
                 _cts = new CancellationTokenSource();
                 _currentPid = pid;
-                Console.WriteLine($"UpdateAsync starting/restarting monitoring for PID: {pid}");
+                Console.WriteLine("UpdateAsync starting/restarting monitoring for PID: {0}", pid);
                 _ = StartMonitoringWithRetryAsync(pid, _cts.Token);
             }
-            Console.WriteLine($"UpdateAsync - FPS: {_fpsSensor.Value}, Frame Time: {_currentFrameTimeSensor.Value}, 1% Low: {_onePercentLowFpsSensor.Value}, 0.1% Low: {_zeroPointOnePercentLowFpsSensor.Value}, Variance: {_frameTimeVarianceSensor.Value}, Frame Times Count: {_frameTimeCount}");
+            Console.WriteLine("UpdateAsync - FPS: {0}, Frame Time: {1}, 1% Low: {2}, Variance: {3}, Frame Times Count: {4}",
+                _fpsSensor.Value, _currentFrameTimeSensor.Value, _onePercentLowFpsSensor.Value, _frameTimeVarianceSensor.Value, _frameTimeCount);
             await Task.CompletedTask;
         }
 
@@ -178,8 +186,8 @@ namespace InfoPanel.Extras
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    uint pid = await GetActiveFullscreenProcessIdAsync().ConfigureAwait(false);
-                    Console.WriteLine($"Detected fullscreen process ID: {pid}");
+                    uint pid = GetActiveFullscreenProcessId();
+                    Console.WriteLine("Detected fullscreen process ID: {0}", pid);
                     if (pid != 0 && !_isMonitoring)
                     {
                         ResetSensorsAndQueue();
@@ -202,14 +210,14 @@ namespace InfoPanel.Extras
             catch (TaskCanceledException) { }
             catch (Exception ex)
             {
-                Console.WriteLine($"Monitoring loop error: {ex.Message}");
+                Console.WriteLine("Monitoring loop error: {0}", ex.ToString());
             }
         }
 
         private async Task HandleWindowChangeAsync()
         {
-            uint pid = await GetActiveFullscreenProcessIdAsync().ConfigureAwait(false);
-            Console.WriteLine($"Event detected - New PID: {pid}, Current PID: {_currentPid}, IsMonitoring: {_isMonitoring}");
+            uint pid = GetActiveFullscreenProcessId();
+            Console.WriteLine("Event detected - New PID: {0}, Current PID: {1}, IsMonitoring: {2}", pid, _currentPid, _isMonitoring);
             if (pid != 0 && !_isMonitoring)
             {
                 ResetSensorsAndQueue();
@@ -234,13 +242,13 @@ namespace InfoPanel.Extras
                 try
                 {
                     var fpsRequest = new FpsRequest { TargetPid = pid };
-                    Console.WriteLine($"Starting FpsInspector for PID: {pid} (Attempt {attempt}/{RetryAttempts})");
+                    Console.WriteLine("Starting FpsInspector for PID: {0} (Attempt {1}/{2})", pid, attempt, RetryAttempts);
                     _isMonitoring = true;
                     await FpsInspector.StartForeverAsync(
                         fpsRequest,
                         result =>
                         {
-                            if (result is null || (_cts?.IsCancellationRequested ?? true)) return;
+                            if (result is null || (_cts is null || _cts.IsCancellationRequested)) return;
 
                             float fps = (float)result.Fps;
                             float frameTime = 1000.0f / fps;
@@ -248,12 +256,12 @@ namespace InfoPanel.Extras
                             UpdateFrameTimesAndMetrics(frameTime, fps);
                         },
                         cancellationToken).ConfigureAwait(false);
-                    Console.WriteLine($"FpsInspector started for PID: {pid}");
+                    Console.WriteLine("FpsInspector started for PID: {0}", pid);
                     break;
                 }
                 catch (InvalidOperationException ex)
                 {
-                    Console.WriteLine($"FpsInspector failed (attempt {attempt}/{RetryAttempts}): {ex.Message}");
+                    Console.WriteLine("FpsInspector failed (attempt {0}/{1}): {2}", attempt, RetryAttempts, ex.ToString());
                     _isMonitoring = false;
                     if (attempt < RetryAttempts)
                         await Task.Delay(RetryDelayMs, cancellationToken).ConfigureAwait(false);
@@ -262,7 +270,7 @@ namespace InfoPanel.Extras
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Unexpected error (attempt {attempt}/{RetryAttempts}): {ex}");
+                    Console.WriteLine("Unexpected error (attempt {0}/{1}): {2}", attempt, RetryAttempts, ex.ToString());
                     _isMonitoring = false;
                     if (attempt < RetryAttempts)
                         await Task.Delay(RetryDelayMs, cancellationToken).ConfigureAwait(false);
@@ -274,20 +282,20 @@ namespace InfoPanel.Extras
 
         private void UpdateFrameTimesAndMetrics(float frameTime, float fps)
         {
-            if (_cts?.IsCancellationRequested ?? true) return; // Prevent updates after cancellation
+            if (_cts is null || _cts.IsCancellationRequested) return;
 
             _frameTimes[_frameTimeIndex] = frameTime;
             _frameTimeIndex = (_frameTimeIndex + 1) % MaxFrameTimes;
             _frameTimeCount = Math.Min(_frameTimeCount + 1, MaxFrameTimes);
 
             _updateCount++;
-            double delta = frameTime - _mean;
-            _mean += delta / _updateCount;
-            double delta2 = frameTime - _mean;
-            _m2 += delta * delta2;
+            double delta = frameTime - _frameTimeMean;
+            _frameTimeMean += delta / _updateCount;
+            double delta2 = frameTime - _frameTimeMean;
+            _frameTimeM2 += delta * delta2;
 
             if (_updateCount >= 2)
-                _frameTimeVarianceSensor.Value = (float)(_m2 / (_updateCount - 1));
+                _frameTimeVarianceSensor.Value = (float)(_frameTimeM2 / (_updateCount - 1));
 
             if (_updateCount % LowFpsRecalcInterval == 0 && _frameTimeCount >= MinFrameTimesForLowFps)
                 UpdateLowFpsMetrics();
@@ -304,14 +312,25 @@ namespace InfoPanel.Extras
         private void UpdateLowFpsMetrics()
         {
             Array.Clear(_histogram, 0, _histogram.Length);
-            float minFrameTime = _frameTimes.Take(_frameTimeCount).Min();
-            float maxFrameTime = _frameTimes.Take(_frameTimeCount).Max();
+            if (_frameTimeCount == 0) return;
+
+            float minFrameTime = float.MaxValue;
+            float maxFrameTime = float.MinValue;
+
+            for (int i = 0; i < _frameTimeCount; i++)
+            {
+                float frameTime = _frameTimes[i];
+                minFrameTime = Math.Min(minFrameTime, frameTime);
+                maxFrameTime = Math.Max(maxFrameTime, frameTime);
+            }
+
             float range = maxFrameTime - minFrameTime;
             if (range <= 0) return;
 
             float bucketSize = range / _histogram.Length;
-            foreach (float ft in _frameTimes.Take(_frameTimeCount))
+            for (int i = 0; i < _frameTimeCount; i++)
             {
+                float ft = _frameTimes[i];
                 int index = (int)((ft - minFrameTime) / bucketSize);
                 if (index >= _histogram.Length) index = _histogram.Length - 1;
                 _histogram[index]++;
@@ -319,22 +338,20 @@ namespace InfoPanel.Extras
 
             float total = _frameTimeCount;
             float onePercentCount = total * 0.01f;
-            float zeroPointOnePercentCount = total * 0.001f;
-            float onePercentFrameTime = 0, zeroPointOnePercentFrameTime = 0;
+            float onePercentFrameTime = 0;
             float cumulative = 0;
 
             for (int i = _histogram.Length - 1; i >= 0; i--)
             {
                 cumulative += _histogram[i];
                 if (cumulative >= onePercentCount && onePercentFrameTime == 0)
+                {
                     onePercentFrameTime = minFrameTime + (i + 0.5f) * bucketSize;
-                if (cumulative >= zeroPointOnePercentCount && zeroPointOnePercentFrameTime == 0)
-                    zeroPointOnePercentFrameTime = minFrameTime + (i + 0.5f) * bucketSize;
-                if (onePercentFrameTime > 0 && zeroPointOnePercentFrameTime > 0) break;
+                    break;
+                }
             }
 
             _onePercentLowFpsSensor.Value = onePercentFrameTime > 0 ? 1000.0f / onePercentFrameTime : 0;
-            _zeroPointOnePercentLowFpsSensor.Value = zeroPointOnePercentFrameTime > 0 ? 1000.0f / zeroPointOnePercentFrameTime : 0;
         }
 
         private void ResetSensorsAndQueue()
@@ -342,50 +359,46 @@ namespace InfoPanel.Extras
             _fpsSensor.Value = 0;
             _currentFrameTimeSensor.Value = 0;
             _onePercentLowFpsSensor.Value = 0;
-            _zeroPointOnePercentLowFpsSensor.Value = 0;
             _frameTimeVarianceSensor.Value = 0;
             Array.Clear(_frameTimes, 0, _frameTimes.Length);
-            Array.Clear(_histogram, 0, _histogram.Length); // Clear histogram to reset percentiles
+            Array.Clear(_histogram, 0, _histogram.Length);
             _frameTimeIndex = 0;
             _frameTimeCount = 0;
-            _mean = 0;
-            _m2 = 0;
+            _frameTimeMean = 0;
+            _frameTimeM2 = 0;
             _updateCount = 0;
         }
 
-        private async Task<uint> GetActiveFullscreenProcessIdAsync()
+        private uint GetActiveFullscreenProcessId()
         {
-            return await Task.Run(() =>
+            HWND hWnd = GetForegroundWindow();
+            if (hWnd == IntPtr.Zero) return 0u;
+
+            RECT windowRect;
+            if (!GetWindowRect(hWnd, out windowRect)) return 0u;
+
+            HMONITOR hMonitor = MonitorFromWindow(hWnd, MonitorFlags.MONITOR_DEFAULTTONEAREST);
+            if (hMonitor == IntPtr.Zero) return 0u;
+
+            var monitorInfo = new MONITORINFO { cbSize = (uint)Marshal.SizeOf<MONITORINFO>() };
+            if (!GetMonitorInfo(hMonitor, ref monitorInfo)) return 0u;
+
+            var monitorRect = monitorInfo.rcMonitor;
+            bool isExactMatch = windowRect.Equals(monitorRect);
+
+            if (!isExactMatch)
             {
-                HWND hWnd = GetForegroundWindow();
-                if (hWnd == IntPtr.Zero) return 0u;
+                RECT extendedFrameBounds;
+                if (DwmGetWindowAttribute(hWnd, DWMWINDOWATTRIBUTE.DWMWA_EXTENDED_FRAME_BOUNDS, out extendedFrameBounds).Succeeded)
+                    isExactMatch = extendedFrameBounds.Equals(monitorRect);
+            }
 
-                RECT windowRect;
-                if (!GetWindowRect(hWnd, out windowRect)) return 0u;
-
-                HMONITOR hMonitor = MonitorFromWindow(hWnd, MonitorFlags.MONITOR_DEFAULTTONEAREST);
-                if (hMonitor == IntPtr.Zero) return 0u;
-
-                var monitorInfo = new MONITORINFO { cbSize = (uint)Marshal.SizeOf<MONITORINFO>() };
-                if (!GetMonitorInfo(hMonitor, ref monitorInfo)) return 0u;
-
-                var monitorRect = monitorInfo.rcMonitor;
-                bool isExactMatch = windowRect.Equals(monitorRect);
-
-                if (!isExactMatch)
-                {
-                    RECT extendedFrameBounds;
-                    if (DwmGetWindowAttribute(hWnd, DWMWINDOWATTRIBUTE.DWMWA_EXTENDED_FRAME_BOUNDS, out extendedFrameBounds).Succeeded)
-                        isExactMatch = extendedFrameBounds.Equals(monitorRect);
-                }
-
-                if (isExactMatch)
-                {
-                    GetWindowThreadProcessId(hWnd, out uint pid);
-                    return IsValidApplicationPid(pid) ? pid : 0u;
-                }
-                return 0u;
-            }).ConfigureAwait(false);
+            if (isExactMatch)
+            {
+                GetWindowThreadProcessId(hWnd, out uint pid);
+                return IsValidApplicationPid(pid) ? pid : 0u;
+            }
+            return 0u;
         }
 
         private static bool IsValidApplicationPid(uint pid)
@@ -401,7 +414,7 @@ namespace InfoPanel.Extras
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"PID validation error: {ex.Message}");
+                Console.WriteLine("PID validation error: {0}", ex.ToString());
                 return false;
             }
         }

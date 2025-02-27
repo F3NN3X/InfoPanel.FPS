@@ -10,29 +10,18 @@
       "InfoPanel.FPS/1.0.0": {
         "dependencies": {
           "InfoPanel.Plugins": "1.0.0",
-          "Microsoft.Diagnostics.Tracing.TraceEvent": "3.1.19",
           "PresentMonFps": "2.0.5",
-          "Vanara.PInvoke.Shared": "4.0.5",
+          "System.Diagnostics.DiagnosticSource": "9.0.2",
+          "System.Diagnostics.Tools": "4.3.0",
+          "Vanara.PInvoke.DwmApi": "4.0.6",
           "Vanara.PInvoke.User32": "4.0.5"
         },
         "runtime": {
           "InfoPanel.FPS.dll": {}
         }
       },
-      "Microsoft.Diagnostics.NETCore.Client/0.2.510501": {
+      "Microsoft.Diagnostics.Tracing.TraceEvent/3.1.13": {
         "dependencies": {
-          "Microsoft.Extensions.Logging": "6.0.0"
-        },
-        "runtime": {
-          "lib/net6.0/Microsoft.Diagnostics.NETCore.Client.dll": {
-            "assemblyVersion": "0.2.10.10501",
-            "fileVersion": "0.2.10.10501"
-          }
-        }
-      },
-      "Microsoft.Diagnostics.Tracing.TraceEvent/3.1.19": {
-        "dependencies": {
-          "Microsoft.Diagnostics.NETCore.Client": "0.2.510501",
           "Microsoft.Win32.Registry": "5.0.0",
           "System.Collections.Immutable": "8.0.0",
           "System.Reflection.Metadata": "8.0.0",
@@ -45,12 +34,12 @@
             "fileVersion": "2.0.0.0"
           },
           "lib/netstandard2.0/Microsoft.Diagnostics.FastSerialization.dll": {
-            "assemblyVersion": "3.1.19.0",
-            "fileVersion": "3.1.19.0"
+            "assemblyVersion": "3.1.13.0",
+            "fileVersion": "3.1.13.0"
           },
           "lib/netstandard2.0/Microsoft.Diagnostics.Tracing.TraceEvent.dll": {
-            "assemblyVersion": "3.1.19.0",
-            "fileVersion": "3.1.19.0"
+            "assemblyVersion": "3.1.13.0",
+            "fileVersion": "3.1.13.0"
           },
           "lib/netstandard2.0/TraceReloggerLib.dll": {
             "assemblyVersion": "0.0.0.0",
@@ -58,73 +47,8 @@
           }
         }
       },
-      "Microsoft.Extensions.DependencyInjection/6.0.0": {
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "6.0.0",
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
-        },
-        "runtime": {
-          "lib/net6.0/Microsoft.Extensions.DependencyInjection.dll": {
-            "assemblyVersion": "6.0.0.0",
-            "fileVersion": "6.0.21.52210"
-          }
-        }
-      },
-      "Microsoft.Extensions.DependencyInjection.Abstractions/6.0.0": {
-        "runtime": {
-          "lib/net6.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
-            "assemblyVersion": "6.0.0.0",
-            "fileVersion": "6.0.21.52210"
-          }
-        }
-      },
-      "Microsoft.Extensions.Logging/6.0.0": {
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection": "6.0.0",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "6.0.0",
-          "Microsoft.Extensions.Logging.Abstractions": "6.0.0",
-          "Microsoft.Extensions.Options": "6.0.0",
-          "System.Diagnostics.DiagnosticSource": "6.0.0"
-        },
-        "runtime": {
-          "lib/netstandard2.1/Microsoft.Extensions.Logging.dll": {
-            "assemblyVersion": "6.0.0.0",
-            "fileVersion": "6.0.21.52210"
-          }
-        }
-      },
-      "Microsoft.Extensions.Logging.Abstractions/6.0.0": {
-        "runtime": {
-          "lib/net6.0/Microsoft.Extensions.Logging.Abstractions.dll": {
-            "assemblyVersion": "6.0.0.0",
-            "fileVersion": "6.0.21.52210"
-          }
-        }
-      },
-      "Microsoft.Extensions.Options/6.0.0": {
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "6.0.0",
-          "Microsoft.Extensions.Primitives": "6.0.0"
-        },
-        "runtime": {
-          "lib/netstandard2.1/Microsoft.Extensions.Options.dll": {
-            "assemblyVersion": "6.0.0.0",
-            "fileVersion": "6.0.21.52210"
-          }
-        }
-      },
-      "Microsoft.Extensions.Primitives/6.0.0": {
-        "dependencies": {
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
-        },
-        "runtime": {
-          "lib/net6.0/Microsoft.Extensions.Primitives.dll": {
-            "assemblyVersion": "6.0.0.0",
-            "fileVersion": "6.0.21.52210"
-          }
-        }
-      },
       "Microsoft.NETCore.Platforms/5.0.0": {},
+      "Microsoft.NETCore.Targets/1.1.0": {},
       "Microsoft.Win32.Registry/5.0.0": {
         "dependencies": {
           "System.Security.AccessControl": "5.0.0",
@@ -133,7 +57,7 @@
       },
       "PresentMonFps/2.0.5": {
         "dependencies": {
-          "Microsoft.Diagnostics.Tracing.TraceEvent": "3.1.19"
+          "Microsoft.Diagnostics.Tracing.TraceEvent": "3.1.13"
         },
         "runtime": {
           "lib/netstandard2.0/PresentMonFps.dll": {
@@ -142,10 +66,33 @@
           }
         }
       },
-      "System.Collections.Immutable/8.0.0": {},
-      "System.Diagnostics.DiagnosticSource/6.0.0": {
+      "runtime.any.System.Diagnostics.Tools/4.3.0": {},
+      "runtime.any.System.Runtime/4.3.0": {
         "dependencies": {
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+          "System.Private.Uri": "4.3.0"
+        }
+      },
+      "System.Collections.Immutable/8.0.0": {},
+      "System.Diagnostics.DiagnosticSource/9.0.2": {
+        "runtime": {
+          "lib/net8.0/System.Diagnostics.DiagnosticSource.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.225.6610"
+          }
+        }
+      },
+      "System.Diagnostics.Tools/4.3.0": {
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "5.0.0",
+          "Microsoft.NETCore.Targets": "1.1.0",
+          "System.Runtime": "4.3.0",
+          "runtime.any.System.Diagnostics.Tools": "4.3.0"
+        }
+      },
+      "System.Private.Uri/4.3.0": {
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "5.0.0",
+          "Microsoft.NETCore.Targets": "1.1.0"
         }
       },
       "System.Reflection.Metadata/8.0.0": {
@@ -154,6 +101,13 @@
         }
       },
       "System.Reflection.TypeExtensions/4.7.0": {},
+      "System.Runtime/4.3.0": {
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "5.0.0",
+          "Microsoft.NETCore.Targets": "1.1.0",
+          "runtime.any.System.Runtime": "4.3.0"
+        }
+      },
       "System.Runtime.CompilerServices.Unsafe/6.0.0": {},
       "System.Security.AccessControl/5.0.0": {
         "dependencies": {
@@ -162,11 +116,11 @@
         }
       },
       "System.Security.Principal.Windows/5.0.0": {},
-      "Vanara.Core/4.0.5": {
+      "Vanara.Core/4.0.6": {
         "runtime": {
           "lib/net8.0-windows7.0/Vanara.Core.dll": {
-            "assemblyVersion": "4.0.5.0",
-            "fileVersion": "4.0.5.0"
+            "assemblyVersion": "4.0.6.0",
+            "fileVersion": "4.0.6.0"
           }
         },
         "resources": {
@@ -175,22 +129,32 @@
           }
         }
       },
-      "Vanara.PInvoke.Gdi32/4.0.5": {
+      "Vanara.PInvoke.DwmApi/4.0.6": {
         "dependencies": {
-          "Vanara.Core": "4.0.5",
-          "Vanara.PInvoke.Shared": "4.0.5"
+          "Vanara.PInvoke.Gdi32": "4.0.6"
+        },
+        "runtime": {
+          "lib/net8.0-windows7.0/Vanara.PInvoke.DwmApi.dll": {
+            "assemblyVersion": "4.0.6.0",
+            "fileVersion": "4.0.6.0"
+          }
+        }
+      },
+      "Vanara.PInvoke.Gdi32/4.0.6": {
+        "dependencies": {
+          "Vanara.PInvoke.Shared": "4.0.6"
         },
         "runtime": {
           "lib/net8.0-windows7.0/Vanara.PInvoke.Gdi32.dll": {
-            "assemblyVersion": "4.0.5.0",
-            "fileVersion": "4.0.5.0"
+            "assemblyVersion": "4.0.6.0",
+            "fileVersion": "4.0.6.0"
           }
         }
       },
       "Vanara.PInvoke.Kernel32/4.0.5": {
         "dependencies": {
-          "Vanara.Core": "4.0.5",
-          "Vanara.PInvoke.Shared": "4.0.5"
+          "Vanara.Core": "4.0.6",
+          "Vanara.PInvoke.Shared": "4.0.6"
         },
         "runtime": {
           "lib/net8.0-windows7.0/Vanara.PInvoke.Kernel32.dll": {
@@ -199,23 +163,23 @@
           }
         }
       },
-      "Vanara.PInvoke.Shared/4.0.5": {
+      "Vanara.PInvoke.Shared/4.0.6": {
         "dependencies": {
-          "Vanara.Core": "4.0.5"
+          "Vanara.Core": "4.0.6"
         },
         "runtime": {
           "lib/net8.0-windows7.0/Vanara.PInvoke.Shared.dll": {
-            "assemblyVersion": "4.0.5.0",
-            "fileVersion": "4.0.5.0"
+            "assemblyVersion": "4.0.6.0",
+            "fileVersion": "4.0.6.0"
           }
         }
       },
       "Vanara.PInvoke.User32/4.0.5": {
         "dependencies": {
-          "Vanara.Core": "4.0.5",
-          "Vanara.PInvoke.Gdi32": "4.0.5",
+          "Vanara.Core": "4.0.6",
+          "Vanara.PInvoke.Gdi32": "4.0.6",
           "Vanara.PInvoke.Kernel32": "4.0.5",
-          "Vanara.PInvoke.Shared": "4.0.5"
+          "Vanara.PInvoke.Shared": "4.0.6"
         },
         "runtime": {
           "lib/net8.0-windows7.0/Vanara.PInvoke.User32.dll": {
@@ -232,61 +196,12 @@
       "serviceable": false,
       "sha512": ""
     },
-    "Microsoft.Diagnostics.NETCore.Client/0.2.510501": {
+    "Microsoft.Diagnostics.Tracing.TraceEvent/3.1.13": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-juoqJYMDs+lRrrZyOkXXMImJHneCF23cuvO4waFRd2Ds7j+ZuGIPbJm0Y/zz34BdeaGiiwGWraMUlln05W1PCQ==",
-      "path": "microsoft.diagnostics.netcore.client/0.2.510501",
-      "hashPath": "microsoft.diagnostics.netcore.client.0.2.510501.nupkg.sha512"
-    },
-    "Microsoft.Diagnostics.Tracing.TraceEvent/3.1.19": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-x5YvHtNp/6tGOJL8SwNTPJuZGPCOx2JxTD3av5DRmZCfl9fwJ2FNn+NvcK7fndPmAz1qq1mfqMAZIu0ypAm0+A==",
-      "path": "microsoft.diagnostics.tracing.traceevent/3.1.19",
-      "hashPath": "microsoft.diagnostics.tracing.traceevent.3.1.19.nupkg.sha512"
-    },
-    "Microsoft.Extensions.DependencyInjection/6.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-k6PWQMuoBDGGHOQTtyois2u4AwyVcIwL2LaSLlTZQm2CYcJ1pxbt6jfAnpWmzENA/wfrYRI/X9DTLoUkE4AsLw==",
-      "path": "microsoft.extensions.dependencyinjection/6.0.0",
-      "hashPath": "microsoft.extensions.dependencyinjection.6.0.0.nupkg.sha512"
-    },
-    "Microsoft.Extensions.DependencyInjection.Abstractions/6.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-xlzi2IYREJH3/m6+lUrQlujzX8wDitm4QGnUu6kUXTQAWPuZY8i+ticFJbzfqaetLA6KR/rO6Ew/HuYD+bxifg==",
-      "path": "microsoft.extensions.dependencyinjection.abstractions/6.0.0",
-      "hashPath": "microsoft.extensions.dependencyinjection.abstractions.6.0.0.nupkg.sha512"
-    },
-    "Microsoft.Extensions.Logging/6.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-eIbyj40QDg1NDz0HBW0S5f3wrLVnKWnDJ/JtZ+yJDFnDj90VoPuoPmFkeaXrtu+0cKm5GRAwoDf+dBWXK0TUdg==",
-      "path": "microsoft.extensions.logging/6.0.0",
-      "hashPath": "microsoft.extensions.logging.6.0.0.nupkg.sha512"
-    },
-    "Microsoft.Extensions.Logging.Abstractions/6.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-/HggWBbTwy8TgebGSX5DBZ24ndhzi93sHUBDvP1IxbZD7FDokYzdAr6+vbWGjw2XAfR2EJ1sfKUotpjHnFWPxA==",
-      "path": "microsoft.extensions.logging.abstractions/6.0.0",
-      "hashPath": "microsoft.extensions.logging.abstractions.6.0.0.nupkg.sha512"
-    },
-    "Microsoft.Extensions.Options/6.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-dzXN0+V1AyjOe2xcJ86Qbo233KHuLEY0njf/P2Kw8SfJU+d45HNS2ctJdnEnrWbM9Ye2eFgaC5Mj9otRMU6IsQ==",
-      "path": "microsoft.extensions.options/6.0.0",
-      "hashPath": "microsoft.extensions.options.6.0.0.nupkg.sha512"
-    },
-    "Microsoft.Extensions.Primitives/6.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-9+PnzmQFfEFNR9J2aDTfJGGupShHjOuGw4VUv+JB044biSHrnmCIMD+mJHmb2H7YryrfBEXDurxQ47gJZdCKNQ==",
-      "path": "microsoft.extensions.primitives/6.0.0",
-      "hashPath": "microsoft.extensions.primitives.6.0.0.nupkg.sha512"
+      "sha512": "sha512-lsAOgDEHgV2a7RxcfpxPKcsA/DrNqiMTAdTPLhbVMrywE9erRRUy2PUFZ4cclLXqMD77WSlGCeydumTnS+K1xw==",
+      "path": "microsoft.diagnostics.tracing.traceevent/3.1.13",
+      "hashPath": "microsoft.diagnostics.tracing.traceevent.3.1.13.nupkg.sha512"
     },
     "Microsoft.NETCore.Platforms/5.0.0": {
       "type": "package",
@@ -294,6 +209,13 @@
       "sha512": "sha512-VyPlqzH2wavqquTcYpkIIAQ6WdenuKoFN0BdYBbCWsclXacSOHNQn66Gt4z5NBqEYW0FAPm5rlvki9ZiCij5xQ==",
       "path": "microsoft.netcore.platforms/5.0.0",
       "hashPath": "microsoft.netcore.platforms.5.0.0.nupkg.sha512"
+    },
+    "Microsoft.NETCore.Targets/1.1.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-aOZA3BWfz9RXjpzt0sRJJMjAscAUm3Hoa4UWAfceV9UTYxgwZ1lZt5nO2myFf+/jetYQo4uTP7zS8sJY67BBxg==",
+      "path": "microsoft.netcore.targets/1.1.0",
+      "hashPath": "microsoft.netcore.targets.1.1.0.nupkg.sha512"
     },
     "Microsoft.Win32.Registry/5.0.0": {
       "type": "package",
@@ -309,6 +231,20 @@
       "path": "presentmonfps/2.0.5",
       "hashPath": "presentmonfps.2.0.5.nupkg.sha512"
     },
+    "runtime.any.System.Diagnostics.Tools/4.3.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-S/GPBmfPBB48ZghLxdDR7kDAJVAqgAuThyDJho3OLP5OS4tWD2ydyL8LKm8lhiBxce10OKe9X2zZ6DUjAqEbPg==",
+      "path": "runtime.any.system.diagnostics.tools/4.3.0",
+      "hashPath": "runtime.any.system.diagnostics.tools.4.3.0.nupkg.sha512"
+    },
+    "runtime.any.System.Runtime/4.3.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-fRS7zJgaG9NkifaAxGGclDDoRn9HC7hXACl52Or06a/fxdzDajWb5wov3c6a+gVSlekRoexfjwQSK9sh5um5LQ==",
+      "path": "runtime.any.system.runtime/4.3.0",
+      "hashPath": "runtime.any.system.runtime.4.3.0.nupkg.sha512"
+    },
     "System.Collections.Immutable/8.0.0": {
       "type": "package",
       "serviceable": true,
@@ -316,12 +252,26 @@
       "path": "system.collections.immutable/8.0.0",
       "hashPath": "system.collections.immutable.8.0.0.nupkg.sha512"
     },
-    "System.Diagnostics.DiagnosticSource/6.0.0": {
+    "System.Diagnostics.DiagnosticSource/9.0.2": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-frQDfv0rl209cKm1lnwTgFPzNigy2EKk1BS3uAvHvlBVKe5cymGyHO+Sj+NLv5VF/AhHsqPIUUwya5oV4CHMUw==",
-      "path": "system.diagnostics.diagnosticsource/6.0.0",
-      "hashPath": "system.diagnostics.diagnosticsource.6.0.0.nupkg.sha512"
+      "sha512": "sha512-z5CMQNLzk8UKnTEHRKb4nq03CCDWBMEF2gfP3oPKZn4F8wip6LFZCP5rF90DREHqdNddScIGAfszXJSjh4drSw==",
+      "path": "system.diagnostics.diagnosticsource/9.0.2",
+      "hashPath": "system.diagnostics.diagnosticsource.9.0.2.nupkg.sha512"
+    },
+    "System.Diagnostics.Tools/4.3.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-UUvkJfSYJMM6x527dJg2VyWPSRqIVB0Z7dbjHst1zmwTXz5CcXSYJFWRpuigfbO1Lf7yfZiIaEUesfnl/g5EyA==",
+      "path": "system.diagnostics.tools/4.3.0",
+      "hashPath": "system.diagnostics.tools.4.3.0.nupkg.sha512"
+    },
+    "System.Private.Uri/4.3.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-I4SwANiUGho1esj4V4oSlPllXjzCZDE+5XXso2P03LW2vOda2Enzh8DWOxwN6hnrJyp314c7KuVu31QYhRzOGg==",
+      "path": "system.private.uri/4.3.0",
+      "hashPath": "system.private.uri.4.3.0.nupkg.sha512"
     },
     "System.Reflection.Metadata/8.0.0": {
       "type": "package",
@@ -336,6 +286,13 @@
       "sha512": "sha512-VybpaOQQhqE6siHppMktjfGBw1GCwvCqiufqmP8F1nj7fTUNtW35LOEt3UZTEsECfo+ELAl/9o9nJx3U91i7vA==",
       "path": "system.reflection.typeextensions/4.7.0",
       "hashPath": "system.reflection.typeextensions.4.7.0.nupkg.sha512"
+    },
+    "System.Runtime/4.3.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-JufQi0vPQ0xGnAczR13AUFglDyVYt4Kqnz1AZaiKZ5+GICq0/1MH/mO/eAJHt/mHW1zjKBJd7kV26SrxddAhiw==",
+      "path": "system.runtime/4.3.0",
+      "hashPath": "system.runtime.4.3.0.nupkg.sha512"
     },
     "System.Runtime.CompilerServices.Unsafe/6.0.0": {
       "type": "package",
@@ -358,19 +315,26 @@
       "path": "system.security.principal.windows/5.0.0",
       "hashPath": "system.security.principal.windows.5.0.0.nupkg.sha512"
     },
-    "Vanara.Core/4.0.5": {
+    "Vanara.Core/4.0.6": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-MHJTle0bpRrzJVDWqMfp9/Yp11TtlDmu7Qbv732SGRJEGeX3YePEZYHT2KqOWM/AWH2vLcmT39RJcNi978XvFg==",
-      "path": "vanara.core/4.0.5",
-      "hashPath": "vanara.core.4.0.5.nupkg.sha512"
+      "sha512": "sha512-AaRlvYbY9q6VgmEtdeqJCsl5eEqsc0k0UmpXf7xzZjfXsZTTxkZkYTr+8x2EYwDW5/7Ukb0QBTKfgf6Fmd6DcA==",
+      "path": "vanara.core/4.0.6",
+      "hashPath": "vanara.core.4.0.6.nupkg.sha512"
     },
-    "Vanara.PInvoke.Gdi32/4.0.5": {
+    "Vanara.PInvoke.DwmApi/4.0.6": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-dQYmk2b9jKCl2tIJ2GOspsLdCtxs/tc4kOGBa4E8dEr0e5VsI/YWQqquwC9Bcyoy+T3cHeZAo9h3NVpO8zn0tA==",
-      "path": "vanara.pinvoke.gdi32/4.0.5",
-      "hashPath": "vanara.pinvoke.gdi32.4.0.5.nupkg.sha512"
+      "sha512": "sha512-0FOJ+IBSSlJeULXYBYpHyVXiGv2nZldohdTtEmdaj51s3XjhyOR94F74zHitWj7N+vgxJVTRUTOokGNZsok0ZA==",
+      "path": "vanara.pinvoke.dwmapi/4.0.6",
+      "hashPath": "vanara.pinvoke.dwmapi.4.0.6.nupkg.sha512"
+    },
+    "Vanara.PInvoke.Gdi32/4.0.6": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-9R2bX0mWIOjULbjbMB43/Zty1U/E7x5lTdAVA3Q1DHBoez0w3tkkKLxuxg3jXUxYWR/UEhCRqA2R6FQ60GSuFw==",
+      "path": "vanara.pinvoke.gdi32/4.0.6",
+      "hashPath": "vanara.pinvoke.gdi32.4.0.6.nupkg.sha512"
     },
     "Vanara.PInvoke.Kernel32/4.0.5": {
       "type": "package",
@@ -379,12 +343,12 @@
       "path": "vanara.pinvoke.kernel32/4.0.5",
       "hashPath": "vanara.pinvoke.kernel32.4.0.5.nupkg.sha512"
     },
-    "Vanara.PInvoke.Shared/4.0.5": {
+    "Vanara.PInvoke.Shared/4.0.6": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-wwNCOSinW6Sf3tk3gVM56UYCwfJrob6z9zghyJuNHgq20oWeaCRaOcEzPhtslGCqeYn56sqxeY+xfE7fdVS76Q==",
-      "path": "vanara.pinvoke.shared/4.0.5",
-      "hashPath": "vanara.pinvoke.shared.4.0.5.nupkg.sha512"
+      "sha512": "sha512-iu0xlMQ8zKMXiUHk83Mj4ak2+HFlq3p5bSjPVtZ0KPbzIHCUaGuYiXzPbXe31n7DZy1seNk5i5TDzuax6nkHmw==",
+      "path": "vanara.pinvoke.shared/4.0.6",
+      "hashPath": "vanara.pinvoke.shared.4.0.6.nupkg.sha512"
     },
     "Vanara.PInvoke.User32/4.0.5": {
       "type": "package",

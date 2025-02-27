@@ -55,17 +55,21 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "dependencies": {
-            "Microsoft.Diagnostics.Tracing.TraceEvent": {
-              "target": "Package",
-              "version": "[3.1.19, )"
-            },
             "PresentMonFps": {
               "target": "Package",
               "version": "[2.0.5, )"
             },
-            "Vanara.PInvoke.Shared": {
+            "System.Diagnostics.DiagnosticSource": {
               "target": "Package",
-              "version": "[4.0.5, )"
+              "version": "[9.0.2, )"
+            },
+            "System.Diagnostics.Tools": {
+              "target": "Package",
+              "version": "[4.3.0, )"
+            },
+            "Vanara.PInvoke.DwmApi": {
+              "target": "Package",
+              "version": "[4.0.6, )"
             },
             "Vanara.PInvoke.User32": {
               "target": "Package",
