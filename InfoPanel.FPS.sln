@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35818.85
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InfoPanel.FPS", "IPPlugin.PresentmonFPS\InfoPanel.FPS.csproj", "{5990A22C-88ED-44F9-A323-55375FF341D6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InfoPanel.FPS", "InfoPanel.FPS\InfoPanel.FPS.csproj", "{5990A22C-88ED-44F9-A323-55375FF341D6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
