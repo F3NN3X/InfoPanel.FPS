@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using InfoPanel.Plugins;
@@ -11,10 +12,12 @@ using static Vanara.PInvoke.User32;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.0.12
+ * Version: 1.0.13
  * Author: F3NN3X
- * Description: An optimized simple InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, and 1% low FPS (99th percentile) over 1000 frames. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
+ * Description: An optimized simple InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile) over 1000 frames, and displays the current app's window title in the UI. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
  * Changelog (Recent):
+ *   - v1.0.13 (Mar 22, 2025): Added window title sensor.
+ *     - New PluginText sensor displays the title of the current fullscreen app in the UI for user-friendly identification.
  *   - v1.0.12 (Mar 10, 2025): Simplified metrics.
  *     - Removed frame time variance sensor and related calculations for a leaner plugin.
  *   - v1.0.11 (Feb 27, 2025): Performance and robustness enhancements.
@@ -25,13 +28,12 @@ using static Vanara.PInvoke.User32;
  *     - Enhanced exception logging with full stack traces.
  *     - Improved null safety for _cts checks.
  *     - Added finalizer for unmanaged resource cleanup.
- *   - v1.0.10 (Feb 27, 2025): Removed 0.1% low FPS calculation.
  * Note: Full history in CHANGELOG.md. A benign log error ("Array is variable sized and does not follow prefix convention") may appear but does not impact functionality.
  */
 
 namespace InfoPanel.FPS
 {
-    // Monitors fullscreen app performance, exposing FPS, frame time, and 1% low FPS via InfoPanel sensors
+    // Monitors fullscreen app performance, exposing FPS, frame time, 1% low FPS, and window title via InfoPanel sensors
     public class FpsPlugin : BasePlugin, IDisposable
     {
         // Sensors for displaying metrics in InfoPanel UI
@@ -48,6 +50,11 @@ namespace InfoPanel.FPS
             0,
             "ms"
         );
+        private readonly PluginText _windowTitle = new(
+            "windowtitle",
+            "Currently Capturing",
+            "Nothing to capture"
+        ); // Window title sensor
 
         // Circular buffer for frame times, used for percentile calculations
         private readonly float[] _frameTimes = new float[1000];
@@ -82,7 +89,7 @@ namespace InfoPanel.FPS
             : base(
                 "fps-plugin",
                 "InfoPanel.FPS",
-                "Simple FPS plugin showing FPS, frame time, and 1% low FPS metrics using PresentMonFPS - v1.0.12"
+                "Simple FPS plugin showing FPS, frame time, 1% low FPS, and window title using PresentMonFPS - v1.0.13"
             )
         {
             _winEventProcDelegate = new User32.WinEventProc(WinEventProc);
@@ -107,10 +114,11 @@ namespace InfoPanel.FPS
         private async Task StartInitialMonitoringAsync(CancellationToken cancellationToken)
         {
             // Currently synchronous up to StartMonitoringWithRetryAsync; kept async for future expansion
-            uint pid = GetActiveFullscreenProcessId();
+            (uint pid, string windowTitle) = GetActiveFullscreenProcessIdAndTitle();
             if (pid != 0 && !_isMonitoring)
             {
                 _currentPid = pid;
+                _windowTitle.Value = windowTitle; // Set initial title
                 ResetSensorsAndQueue();
                 await StartMonitoringWithRetryAsync(pid, cancellationToken).ConfigureAwait(false);
             }
@@ -158,6 +166,7 @@ namespace InfoPanel.FPS
             container.Entries.Add(_fpsSensor);
             container.Entries.Add(_onePercentLowFpsSensor);
             container.Entries.Add(_currentFrameTimeSensor);
+            container.Entries.Add(_windowTitle); // Add window title sensor to UI
             containers.Add(container);
         }
 
@@ -167,13 +176,14 @@ namespace InfoPanel.FPS
         // Updates sensor values and checks for app closure every 1 second
         public override async Task UpdateAsync(CancellationToken cancellationToken)
         {
-            uint pid = GetActiveFullscreenProcessId();
+            (uint pid, string windowTitle) = GetActiveFullscreenProcessIdAndTitle();
             if (pid == 0 && _currentPid != 0) // App closed or lost fullscreen
             {
                 ResetSensorsAndQueue(); // Reset sensors when no fullscreen app is detected
                 _cts?.Cancel();
                 _currentPid = 0;
                 _isMonitoring = false;
+                _windowTitle.Value = "-"; // Reset title to default
                 Console.WriteLine("UpdateAsync detected no fullscreen app; all sensors reset to 0");
             }
             else if (pid != 0 && !_isMonitoring) // New fullscreen app detected
@@ -182,15 +192,25 @@ namespace InfoPanel.FPS
                 _cts?.Cancel();
                 _cts = new CancellationTokenSource();
                 _currentPid = pid;
-                Console.WriteLine("UpdateAsync starting/restarting monitoring for PID: {0}", pid);
+                _windowTitle.Value = windowTitle; // Set initial title
+                Console.WriteLine(
+                    "UpdateAsync starting/restarting monitoring for PID: {0}, Title: {1}",
+                    pid,
+                    windowTitle
+                );
                 _ = StartMonitoringWithRetryAsync(pid, _cts.Token); // Start monitoring in background
             }
-            // Log current sensor values for debugging
+            else if (pid != 0 && _currentPid == pid) // Update title if still monitoring same app
+            {
+                _windowTitle.Value = windowTitle;
+            }
+            // Log current sensor values and title for debugging
             Console.WriteLine(
-                "UpdateAsync - FPS: {0}, Frame Time: {1}, 1% Low: {2}, Frame Times Count: {3}",
+                "UpdateAsync - FPS: {0}, Frame Time: {1}, 1% Low: {2}, Title: {3}, Frame Times Count: {4}",
                 _fpsSensor.Value,
                 _currentFrameTimeSensor.Value,
                 _onePercentLowFpsSensor.Value,
+                _windowTitle.Value,
                 _frameTimeCount
             );
             await Task.CompletedTask;
@@ -238,14 +258,19 @@ namespace InfoPanel.FPS
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    uint pid = GetActiveFullscreenProcessId();
-                    Console.WriteLine("Detected fullscreen process ID: {0}", pid);
+                    (uint pid, string windowTitle) = GetActiveFullscreenProcessIdAndTitle();
+                    Console.WriteLine(
+                        "Detected fullscreen process ID: {0}, Title: {1}",
+                        pid,
+                        windowTitle
+                    );
                     if (pid != 0 && !_isMonitoring) // Start monitoring new fullscreen app
                     {
                         ResetSensorsAndQueue();
                         _cts?.Cancel();
                         _cts = new CancellationTokenSource();
                         _currentPid = pid;
+                        _windowTitle.Value = windowTitle; // Set initial title
                         await StartMonitoringWithRetryAsync(pid, _cts.Token).ConfigureAwait(false);
                     }
                     else if (pid == 0 && _currentPid != 0) // Stop monitoring when app closes
@@ -254,6 +279,7 @@ namespace InfoPanel.FPS
                         _cts?.Cancel();
                         _currentPid = 0;
                         _isMonitoring = false;
+                        _windowTitle.Value = "-"; // Reset title to default
                         Console.WriteLine(
                             "No fullscreen app detected; all sensor values reset to 0"
                         );
@@ -272,10 +298,11 @@ namespace InfoPanel.FPS
         // Handles window change events by checking fullscreen status and updating monitoring
         private async Task HandleWindowChangeAsync()
         {
-            uint pid = GetActiveFullscreenProcessId();
+            (uint pid, string windowTitle) = GetActiveFullscreenProcessIdAndTitle();
             Console.WriteLine(
-                "Event detected - New PID: {0}, Current PID: {1}, IsMonitoring: {2}",
+                "Event detected - New PID: {0}, Title: {1}, Current PID: {2}, IsMonitoring: {3}",
                 pid,
+                windowTitle,
                 _currentPid,
                 _isMonitoring
             );
@@ -285,6 +312,7 @@ namespace InfoPanel.FPS
                 _cts?.Cancel();
                 _cts = new CancellationTokenSource();
                 _currentPid = pid;
+                _windowTitle.Value = windowTitle; // Set initial title
                 await StartMonitoringWithRetryAsync(pid, _cts.Token).ConfigureAwait(false);
             }
             else if (pid == 0 && _currentPid != 0) // Stop monitoring when app closes
@@ -293,6 +321,7 @@ namespace InfoPanel.FPS
                 _cts?.Cancel();
                 _currentPid = 0;
                 _isMonitoring = false;
+                _windowTitle.Value = "-"; // Reset title to default
             }
         }
 
@@ -457,6 +486,7 @@ namespace InfoPanel.FPS
             _fpsSensor.Value = 0;
             _currentFrameTimeSensor.Value = 0;
             _onePercentLowFpsSensor.Value = 0;
+            _windowTitle.Value = "Nothing to capture"; // Reset title to default
             Array.Clear(_frameTimes, 0, _frameTimes.Length);
             Array.Clear(_histogram, 0, _histogram.Length);
             _frameTimeIndex = 0;
@@ -464,24 +494,24 @@ namespace InfoPanel.FPS
             _updateCount = 0;
         }
 
-        // Gets the process ID of the current fullscreen app, or 0 if none detected
-        private uint GetActiveFullscreenProcessId()
+        // Gets the process ID and window title of the current fullscreen app, or (0, "") if none detected
+        private (uint pid, string windowTitle) GetActiveFullscreenProcessIdAndTitle()
         {
             HWND hWnd = GetForegroundWindow();
             if (hWnd == IntPtr.Zero)
-                return 0u; // No foreground window
+                return (0u, ""); // No foreground window
 
             RECT windowRect;
             if (!GetWindowRect(hWnd, out windowRect))
-                return 0u; // Failed to get window rectangle
+                return (0u, ""); // Failed to get window rectangle
 
             HMONITOR hMonitor = MonitorFromWindow(hWnd, MonitorFlags.MONITOR_DEFAULTTONEAREST);
             if (hMonitor == IntPtr.Zero)
-                return 0u; // No monitor found
+                return (0u, ""); // No monitor found
 
             var monitorInfo = new MONITORINFO { cbSize = (uint)Marshal.SizeOf<MONITORINFO>() };
             if (!GetMonitorInfo(hMonitor, ref monitorInfo))
-                return 0u; // Failed to get monitor info
+                return (0u, ""); // Failed to get monitor info
 
             var monitorRect = monitorInfo.rcMonitor;
             bool isExactMatch = windowRect.Equals(monitorRect);
@@ -502,9 +532,21 @@ namespace InfoPanel.FPS
             if (isExactMatch)
             {
                 GetWindowThreadProcessId(hWnd, out uint pid);
-                return IsValidApplicationPid(pid) ? pid : 0u; // Validate and return PID
+                if (IsValidApplicationPid(pid))
+                {
+                    // Get window title
+                    int length = GetWindowTextLength(hWnd);
+                    if (length > 0)
+                    {
+                        StringBuilder title = new StringBuilder(length + 1);
+                        GetWindowText(hWnd, title, title.Capacity);
+                        return (pid, title.ToString());
+                    }
+                    return (pid, "Untitled"); // Fallback if no title
+                }
+                return (0u, ""); // Invalid PID
             }
-            return 0u;
+            return (0u, ""); // Not fullscreen
         }
 
         // Validates if a PID belongs to a legitimate application with a main window

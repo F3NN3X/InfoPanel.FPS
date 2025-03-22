@@ -6,6 +6,11 @@
 
 ## Changelog
 
+## v1.0.13 (Mar 22, 2025)
+
+- **Added Window Title Sensor**
+  - New sensor displays the title of the current fullscreen app for user-friendly identification.
+
 ## v1.0.12 (Mar 10, 2025)
 
 - **Simplified Metrics**
