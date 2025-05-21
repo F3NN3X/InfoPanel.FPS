@@ -1,6 +1,6 @@
 # CHANGELOG
 
-##v1.0.14 (May 21, 2025)
+## v1.0.14 (May 21, 2025)
 
 - Added Main Display Resolution and Main Display Refresh Rate Sensors
 - Added PluginText sensor for main display resolution (e.g., 3840x2160) and PluginSensor for main display refresh rate (e.g., 240Hz).
