@@ -1,5 +1,15 @@
 # CHANGELOG
 
+##v1.0.14 (May 21, 2025)
+
+- Added Main Display Resolution and Main Display Refresh Rate Sensors
+- Added PluginText sensor for main display resolution (e.g., 3840x2160) and PluginSensor for main display refresh rate (e.g., 240Hz).
+- Fixed incorrect use of PluginSensor for main display resolution by switching to PluginText.
+- Cached monitor info to minimize API calls.
+- Modified plugin to always report the primary monitor's default resolution and refresh rate for both fullscreen and non-fullscreen cases, ensuring consistency on multi-monitor systems.
+- Fixed sensor update logic to display primary monitor settings when no fullscreen app is detected, preventing 0x0 and 0Hz fallbacks.
+- Improved fullscreen detection using MonitorFromWindow to accurately detect fullscreen apps on the active monitor, aligning with InfoPanel developer guide, while maintaining primary monitor reporting.
+
 ## v1.0.13 (Mar 22, 2025)
 
 - **Added Window Title Sensor**
