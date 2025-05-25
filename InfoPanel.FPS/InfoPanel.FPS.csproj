@@ -14,7 +14,7 @@
     <!-- Limit satellite resources to English only -->
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
     <!-- Define the plugin version -->
-    <Version>1.0.14</Version>
+    <Version>1.0.15</Version>
     <!-- Customize output path for Release builds -->
     <OutputPath Condition="'$(Configuration)' == 'Release'">bin\Release\net8.0-windows\InfoPanel.FPS-v$(Version)\InfoPanel.FPS</OutputPath>
     <!-- Prevent appending TargetFramework to OutputPath -->

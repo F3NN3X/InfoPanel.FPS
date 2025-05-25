@@ -100,7 +100,7 @@ namespace InfoPanel.FPS
             : base(
                 "fps-plugin",
                 "InfoPanel.FPS",
-                "Simple FPS plugin showing FPS, frame time, 1% low FPS, window title, resolution, and refresh rate using PresentMonFPS - v1.0.15"
+                "Simple FPS plugin showing FPS, frame time, 1% low FPS, window title, resolution, and refresh rate using PresentMonFPS"
             )
         {
             _winEventProcDelegate = new User32.WinEventProc(WinEventProc);

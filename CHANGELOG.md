@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.0.15 (May 21, 2025)
+
+- Improved fullscreen detection for multi-monitor setups.
+- Used MonitorFromWindow for accurate fullscreen detection on the active monitor.
+- Continued reporting primary monitor's resolution and refresh rate for consistency.
+
 ## v1.0.14 (May 21, 2025)
 
 - Added Main Display Resolution and Main Display Refresh Rate Sensors
