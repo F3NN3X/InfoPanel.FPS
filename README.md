@@ -28,8 +28,11 @@ InfoPanel.FPS provides detailed performance statistics for running fullscreen ap
 
 ## Requirements
 
-* InfoPanel framework (latest version recommended)
+* InfoPanel app (latest version recommended)
 * Windows operating system
+
+## To compile
+
 * .NET runtime compatible with InfoPanel
 * PresentMonFps dependency (included in release package)
 
