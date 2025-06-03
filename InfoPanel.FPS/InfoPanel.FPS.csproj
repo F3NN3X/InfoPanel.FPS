@@ -14,27 +14,53 @@
     <!-- Limit satellite resources to English only -->
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
     <!-- Define the plugin version -->
-    <Version>1.0.15</Version>
+    <Version>1.0.16</Version>
     <!-- Customize output path for Release builds -->
     <OutputPath Condition="'$(Configuration)' == 'Release'">bin\Release\net8.0-windows\InfoPanel.FPS-v$(Version)\InfoPanel.FPS</OutputPath>
     <!-- Prevent appending TargetFramework to OutputPath -->
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Prevent creation of subdirectories in the output -->
+    <UseAppHost>false</UseAppHost>
+    <!-- Don't create platform-specific subfolders -->
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <!-- Disable runtime config generation -->
+    <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
 
-	<ItemGroup>
+  <!-- Post-build event commands -->
+  <Target Name="MoveDependencyFiles" AfterTargets="Build">
+    <ItemGroup>
+      <SubdirDLLs Include="$(OutputPath)**\*.dll" Exclude="$(OutputPath)*.dll" />
+      <SubdirPDBs Include="$(OutputPath)**\*.pdb" Exclude="$(OutputPath)*.pdb" />
+    </ItemGroup>
+    
+    <Copy SourceFiles="@(SubdirDLLs)" DestinationFolder="$(OutputPath)" />
+    <Copy SourceFiles="@(SubdirPDBs)" DestinationFolder="$(OutputPath)" />
+    
+    <ItemGroup>
+      <DirectoriesToDelete Include="$(OutputPath)runtimes" />
+      <DirectoriesToDelete Include="$(OutputPath)net8.0-windows" />
+      <DirectoriesToDelete Include="$(OutputPath)amd64" />
+    </ItemGroup>
+    
+    <RemoveDir Directories="@(DirectoriesToDelete)" />
+  </Target>
+
+  <ItemGroup>
     <PackageReference Include="PresentMonFps" Version="2.0.5" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.2" />
     <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" />
+    <PackageReference Include="System.Management" Version="9.0.5" />
     <PackageReference Include="Vanara.PInvoke.DwmApi" Version="4.0.6" />
     <PackageReference Include="Vanara.PInvoke.User32" Version="4.0.5" />
-	</ItemGroup>
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="E:\GitHub\PublicRepos\infopanel\InfoPanel.Plugins\InfoPanel.Plugins.csproj">
-			<Private>false</Private>
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</ProjectReference>
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="E:\GitHub\PublicRepos\infopanel\InfoPanel.Plugins\InfoPanel.Plugins.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="PluginInfo.ini">

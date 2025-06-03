@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Management; // Added for WMI access
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -12,10 +13,14 @@ using static Vanara.PInvoke.User32;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.0.15
+ * Version: 1.0.16
  * Author: F3NN3X
- * Description: An optimized InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile) over 1000 frames, window title, display resolution, and refresh rate in the UI. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
+ * Description: An optimized InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile) over 1000 frames, window title, display resolution, refresh rate, and GPU name in the UI. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
  * Changelog (Recent):
+ *   - v1.0.16 (June 3, 2025): Added GPU Name sensor.
+ *     - New PluginText sensor displays the name of the system's graphics card in the UI.
+ *     - Added System.Management reference for WMI queries to detect GPU information.
+ *     - Ensured all dependencies are in root folder without subdirectories.
  *   - v1.0.15 (May 21, 2025): Improved fullscreen detection for multi-monitor setups.
  *     - Used MonitorFromWindow for accurate fullscreen detection on the active monitor.
  *     - Continued reporting primary monitor's resolution and refresh rate for consistency.
@@ -65,6 +70,7 @@ namespace InfoPanel.FPS
             0,
             "Hz"
         );
+        private readonly PluginText _gpuNameSensor = new("gpu-name", "GPU Name", "Unknown GPU"); // Added a new PluginSensor to display the GPU name.
 
         // Circular buffer for frame times, used for percentile calculations
         private readonly float[] _frameTimes = new float[1000];
@@ -95,7 +101,9 @@ namespace InfoPanel.FPS
         private const int EventDebounceMs = 500; // Debounce window events by 500ms
         private const float FullscreenAreaThreshold = 0.95f; // Require 95% monitor area coverage for fullscreen detection
 
-        // Initializes the plugin with its metadata
+        /// <summary>
+        /// Initializes the plugin with its metadata.
+        /// </summary>
         public FpsPlugin()
             : base(
                 "fps-plugin",
@@ -181,6 +189,7 @@ namespace InfoPanel.FPS
             container.Entries.Add(_windowTitle);
             container.Entries.Add(_resolutionSensor);
             container.Entries.Add(_refreshRateSensor);
+            container.Entries.Add(_gpuNameSensor); // Added GPU name sensor
             containers.Add(container);
         }
 
@@ -257,6 +266,8 @@ namespace InfoPanel.FPS
                 _refreshRateSensor.Value,
                 _frameTimeCount
             );
+            // Update GPU name sensor
+            _gpuNameSensor.Value = GetGpuName();
             await Task.CompletedTask;
         }
 
@@ -564,7 +575,9 @@ namespace InfoPanel.FPS
                 onePercentFrameTime > 0 ? 1000.0f / onePercentFrameTime : 0;
         }
 
-        // Resets all sensors and internal state to initial values
+        /// <summary>
+        /// Resets all sensors and internal state to initial values.
+        /// </summary>
         private void ResetSensorsAndQueue()
         {
             _fpsSensor.Value = 0;
@@ -578,26 +591,6 @@ namespace InfoPanel.FPS
             _frameTimeIndex = 0;
             _frameTimeCount = 0;
             _updateCount = 0;
-        }
-
-        // Gets the primary monitor's default resolution and refresh rate
-        private (string resolution, uint refreshRate) GetPrimaryMonitorSettings()
-        {
-            DEVMODE devMode = new DEVMODE();
-            devMode.dmSize = (ushort)Marshal.SizeOf<DEVMODE>();
-            if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode))
-            {
-                string resolution = $"{devMode.dmPelsWidth}x{devMode.dmPelsHeight}";
-                uint refreshRate = (uint)devMode.dmDisplayFrequency;
-                Console.WriteLine(
-                    "GetPrimaryMonitorSettings: Primary monitor resolution={0}, RefreshRate={1}Hz",
-                    resolution,
-                    refreshRate
-                );
-                return (resolution, refreshRate);
-            }
-            Console.WriteLine("GetPrimaryMonitorSettings: Failed to get primary monitor settings");
-            return ("0x0", 0u); // Fallback if retrieval fails
         }
 
         // Gets the process ID, window title, resolution, and refresh rate of the current fullscreen app
@@ -706,7 +699,34 @@ namespace InfoPanel.FPS
             return (0u, "", resolution, refreshRate);
         }
 
-        // Validates if a PID belongs to a legitimate application with a main window
+        /// <summary>
+        /// Gets the primary monitor's default resolution and refresh rate.
+        /// </summary>
+        /// <returns>A tuple containing resolution and refresh rate.</returns>
+        private (string resolution, uint refreshRate) GetPrimaryMonitorSettings()
+        {
+            DEVMODE devMode = new DEVMODE();
+            devMode.dmSize = (ushort)Marshal.SizeOf<DEVMODE>();
+            if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode))
+            {
+                string resolution = $"{devMode.dmPelsWidth}x{devMode.dmPelsHeight}";
+                uint refreshRate = (uint)devMode.dmDisplayFrequency;
+                Console.WriteLine(
+                    "GetPrimaryMonitorSettings: Primary monitor resolution={0}, RefreshRate={1}Hz",
+                    resolution,
+                    refreshRate
+                );
+                return (resolution, refreshRate);
+            }
+            Console.WriteLine("GetPrimaryMonitorSettings: Failed to get primary monitor settings");
+            return ("0x0", 0u); // Fallback if retrieval fails
+        }
+
+        /// <summary>
+        /// Validates if a PID belongs to a legitimate application with a main window.
+        /// </summary>
+        /// <param name="pid">The process ID to validate.</param>
+        /// <returns>True if the PID is valid; otherwise, false.</returns>
         private static bool IsValidApplicationPid(uint pid)
         {
             try
@@ -725,6 +745,30 @@ namespace InfoPanel.FPS
             {
                 Console.WriteLine("IsValidApplicationPid: Error for PID {0}: {1}", pid, ex.ToString());
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the name of the GPU in the system.
+        /// </summary>
+        /// <returns>The name of the GPU.</returns>
+        private string GetGpuName()
+        {
+            try
+            {
+                using (var searcher = new ManagementObjectSearcher("select * from Win32_VideoController"))
+                {
+                    foreach (var obj in searcher.Get())
+                    {
+                        return obj["Name"]?.ToString() ?? "Unknown GPU";
+                    }
+                }
+                return "Unknown GPU"; // Return default if no GPU found
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error retrieving GPU name: {0}", ex.ToString());
+                return "Unknown GPU";
             }
         }
     }

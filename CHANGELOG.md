@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v1.0.16 (June 3, 2025)
+
+- **Added GPU Name Sensor**
+  - New PluginText sensor displays the name of the system's graphics card in the UI.
+  - Added System.Management reference for WMI queries to detect GPU information.
+- **Improved Build Configuration**
+  - Ensured all dependencies are placed in the root output folder without subdirectories.
+  - Added post-build target to automatically move DLLs from subdirectories to the root folder.
+  - Fixed dependency management for better plugin compatibility.
+
 ## v1.0.15 (May 21, 2025)
 
 - Improved fullscreen detection for multi-monitor setups.
