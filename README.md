@@ -6,6 +6,8 @@ A plugin for the InfoPanel app that leverages `PresentMonFps` to monitor and dis
 
 InfoPanel.FPS provides detailed performance statistics for running fullscreen applications, enabling users to monitor gaming performance in real-time through InfoPanel's interface. The plugin tracks FPS, frame times, and low percentile data, updating every second with efficient event-driven detection.
 
+![InfoPanel.FPS Screenshot](https://i.imgur.com/VsyjMRh.png)
+
 **Version:** 1.0.16  
 **Author:** F3NN3X
 
