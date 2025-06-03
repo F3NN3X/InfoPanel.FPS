@@ -1,61 +1,58 @@
 # InfoPanel.FPS Plugin
 
-**Version:** 1.0.15
+A plugin for the InfoPanel app that leverages `PresentMonFps` to monitor and display real-time performance metrics for fullscreen applications.
+
+## Overview
+
+InfoPanel.FPS provides detailed performance statistics for running fullscreen applications, enabling users to monitor gaming performance in real-time through InfoPanel's interface. The plugin tracks FPS, frame times, and low percentile data, updating every second with efficient event-driven detection.
+
+**Version:** 1.0.16  
 **Author:** F3NN3X
-**Description:** An simple InfoPanel plugin that leverages `PresentMonFps` to monitor and display real-time performance metrics for fullscreen applications. Tracks Frames Per Second (FPS), current frame time in milliseconds and 1% low FPS (99th percentile). Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
 
-## Changelog
+## Features
 
-## v1.0.15 (May 21, 2025)
+* **Real-time Performance Monitoring**: Tracks and displays performance metrics for fullscreen applications with second-by-second updates.
+* **Multiple Performance Metrics**:
+  * Current Frames Per Second (FPS)
+  * Frame time in milliseconds
+  * 1% Low FPS (99th percentile) for stutter detection
+* **Display Information**:
+  * Main display resolution (e.g., "3840x2160")
+  * Main display refresh rate (e.g., "240Hz")
+* **Window Title Reporting**: Shows the title of the currently monitored fullscreen application.
+* **Efficient Resource Usage**:
+  * Event-driven detection ensures immediate startup when fullscreen apps launch
+  * Proper cleanup and metric clearing when fullscreen apps close
+  * Optimized calculations with minimal resource overhead
+* **Multi-monitor Support**: Accurate fullscreen detection on multiple monitor setups.
 
-- Improved fullscreen detection for multi-monitor setups.
-- Used MonitorFromWindow for accurate fullscreen detection on the active monitor.
-- Continued reporting primary monitor's resolution and refresh rate for consistency.
+## Requirements
 
-## v1.0.14 (May 21, 2025)
+* InfoPanel framework (latest version recommended)
+* Windows operating system
+* .NET runtime compatible with InfoPanel
+* PresentMonFps dependency (included in release package)
 
-- Added Main Display Resolution and Main Display Refresh Rate Sensors
-- Added PluginText sensor for main display resolution (e.g., 3840x2160) and PluginSensor for main display refresh rate (e.g., 240Hz).
-- Fixed incorrect use of PluginSensor for main display resolution by switching to PluginText.
-- Cached monitor info to minimize API calls.
-- Modified plugin to always report the primary monitor's default resolution and refresh rate for both fullscreen and non-fullscreen cases, ensuring consistency on multi-monitor systems.
-- Fixed sensor update logic to display primary monitor settings when no fullscreen app is detected, preventing 0x0 and 0Hz fallbacks.
-- Improved fullscreen detection using MonitorFromWindow to accurately detect fullscreen apps on the active monitor, aligning with InfoPanel developer guide, while maintaining primary monitor reporting.
+## Installation
 
-## v1.0.13 (Mar 22, 2025)
+1. Download the latest release from GitHub.
+2. Import into InfoPanel via the "Import Plugin" feature.
+3. The plugin will automatically start monitoring fullscreen applications.
 
-- **Added Window Title Sensor**
-  - New sensor displays the title of the current fullscreen app for user-friendly identification.
+## Installation from Source
 
-## v1.0.12 (Mar 10, 2025)
+1. Clone or download this repository.
+2. Build the project in a .NET environment.
+3. Copy the compiled DLLs and dependencies to your InfoPanel plugins folder.
 
-- **Simplified Metrics**
-  - Removed frame time variance sensor and related calculations for a leaner plugin.
+## Usage
 
-### v1.0.11 (Feb 27, 2025)
-
-- **Performance and Robustness Enhancements**
-  - Reduced string allocations with format strings in logs.
-  - Simplified `Initialize` by moving initial PID check to `StartInitialMonitoringAsync`.
-  - Optimized `GetActiveFullscreenProcessId` to a synchronous method.
-  - Enhanced `UpdateLowFpsMetrics` with single-pass min/max/histogram calculation.
-  - Improved exception logging with full stack traces.
-  - Added null safety for `_cts` checks.
-  - Implemented finalizer for unmanaged resource cleanup.
-
-### v1.0.10 (Feb 27, 2025)
-
-- **Removed 0.1% Low FPS Calculation**
-  - Simplified scope by eliminating 0.1% low metric from UI and calculations.
-
-### v1.0.9 (Feb 24, 2025)
-
-- **Fixed 1% Low Reset on Closure**
-  - Ensured immediate `ResetSensorsAndQueue` before cancellation.
-  - Cleared histogram to prevent stale percentiles.
-  - Blocked post-cancel updates in `UpdateFrameTimesAndMetrics`.
+* Launch InfoPanel with the plugin loaded.
+* The plugin automatically detects and monitors fullscreen applications.
+* View real-time performance metrics in InfoPanel's UI.
+* Metrics reset when fullscreen applications are closed.
 
 ## Notes
 
-- A benign log error (`"Array is variable sized and does not follow prefix convention"`) may appear but does not impact functionality.
-- Full changelog available on request or in future `CHANGELOG.md`.
+* A benign log error (`"Array is variable sized and does not follow prefix convention"`) may appear but does not impact functionality.
+* For detailed version history, please refer to the `CHANGELOG.md` file.
