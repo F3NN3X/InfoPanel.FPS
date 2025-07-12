@@ -13,10 +13,13 @@ using static Vanara.PInvoke.User32;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.0.16
+ * Version: 1.0.17
  * Author: F3NN3X
  * Description: An optimized InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile) over 1000 frames, window title, display resolution, refresh rate, and GPU name in the UI. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
  * Changelog (Recent):
+ *   - v1.0.17 (July 12, 2025): Improved resolution display format.
+ *     - Changed resolution format to include spaces (e.g., "3840 x 2160" instead of "3840x2160") for better readability.
+ *     - Updated all instances of resolution display for consistency.
  *   - v1.0.16 (June 3, 2025): Added GPU Name sensor.
  *     - New PluginText sensor displays the name of the system's graphics card in the UI.
  *     - Added System.Management reference for WMI queries to detect GPU information.
@@ -58,11 +61,10 @@ namespace InfoPanel.FPS
             "windowtitle",
             "Currently Capturing",
             "Nothing to capture"
-        );
-        private readonly PluginText _resolutionSensor = new(
+        );        private readonly PluginText _resolutionSensor = new(
             "resolution",
             "Display Resolution",
-            "0x0"
+            "0 x 0"
         );
         private readonly PluginSensor _refreshRateSensor = new(
             "refreshrate",
@@ -582,9 +584,8 @@ namespace InfoPanel.FPS
         {
             _fpsSensor.Value = 0;
             _currentFrameTimeSensor.Value = 0;
-            _onePercentLowFpsSensor.Value = 0;
-            _windowTitle.Value = "Nothing to capture";
-            _resolutionSensor.Value = "0x0";
+            _onePercentLowFpsSensor.Value = 0;            _windowTitle.Value = "Nothing to capture";
+            _resolutionSensor.Value = "0 x 0";
             _refreshRateSensor.Value = 0;
             Array.Clear(_frameTimes, 0, _frameTimes.Length);
             Array.Clear(_histogram, 0, _histogram.Length);
@@ -706,10 +707,9 @@ namespace InfoPanel.FPS
         private (string resolution, uint refreshRate) GetPrimaryMonitorSettings()
         {
             DEVMODE devMode = new DEVMODE();
-            devMode.dmSize = (ushort)Marshal.SizeOf<DEVMODE>();
-            if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode))
+            devMode.dmSize = (ushort)Marshal.SizeOf<DEVMODE>();            if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode))
             {
-                string resolution = $"{devMode.dmPelsWidth}x{devMode.dmPelsHeight}";
+                string resolution = $"{devMode.dmPelsWidth} x {devMode.dmPelsHeight}";
                 uint refreshRate = (uint)devMode.dmDisplayFrequency;
                 Console.WriteLine(
                     "GetPrimaryMonitorSettings: Primary monitor resolution={0}, RefreshRate={1}Hz",
@@ -717,9 +717,8 @@ namespace InfoPanel.FPS
                     refreshRate
                 );
                 return (resolution, refreshRate);
-            }
-            Console.WriteLine("GetPrimaryMonitorSettings: Failed to get primary monitor settings");
-            return ("0x0", 0u); // Fallback if retrieval fails
+            }            Console.WriteLine("GetPrimaryMonitorSettings: Failed to get primary monitor settings");
+            return ("0 x 0", 0u); // Fallback if retrieval fails
         }
 
         /// <summary>

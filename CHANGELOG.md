@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.0.17 (July 12, 2025)
+
+- **Improved Resolution Display Format**
+  - Changed resolution format to include spaces (e.g., "3840 x 2160" instead of "3840x2160") for better readability.
+  - Updated all instances of resolution display for consistency.
+
 ## v1.0.16 (June 3, 2025)
 
 - **Added GPU Name Sensor**
