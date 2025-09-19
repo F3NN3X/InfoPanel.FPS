@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v1.1.1 (September 20, 2025)
+
+- **Critical Bug Fix**
+  - **Removed Hardcoded File Logging**: Eliminated `C:\temp\fps_plugin_debug.log` file operations that were causing crashes for users without the temp directory
+  - **Improved Stability**: Plugin now relies solely on console logging instead of file system operations
+  - **Enhanced Compatibility**: Ensures plugin works on all Windows systems regardless of directory permissions or structure
+
 ## v1.1.0 (September 19, 2025)
 
 - **Major Architectural Refactoring and Reliability Improvements**

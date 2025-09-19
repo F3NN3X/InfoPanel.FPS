@@ -6,7 +6,7 @@ using InfoPanel.Plugins;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: F3NN3X
  * Description: An optimized InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile) over 1000 frames, window title, display resolution, refresh rate, and GPU name in the UI. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
  * Changelog (Recent):
@@ -57,10 +57,9 @@ namespace InfoPanel.FPS
                 "Simple FPS plugin showing FPS, frame time, 1% low FPS, window title, resolution, and refresh rate using PresentMonFPS"
             )
         {
-            // Critical: Add early logging that should appear in any case
+            // Critical: Add early logging for debugging
             System.Diagnostics.Debug.WriteLine("=== InfoPanel.FPS Constructor Called ===");
             Console.WriteLine("=== InfoPanel.FPS Constructor Called ===");
-            System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: FpsPlugin constructor called\n");
 
             // Initialize services - in a real DI scenario, these would be injected
             _performanceService = new PerformanceMonitoringService();
@@ -73,7 +72,6 @@ namespace InfoPanel.FPS
             _windowDetectionService.WindowChanged += OnWindowChanged;
 
             Console.WriteLine("FpsPlugin initialized with all services");
-            System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: FpsPlugin services initialized\n");
         }
 
         /// <summary>
@@ -93,7 +91,6 @@ namespace InfoPanel.FPS
         {
             try
             {
-                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Initialize() method called\n");
                 Console.WriteLine("=== FpsPlugin Initialize() called ===");
 
                 _cancellationTokenSource = new CancellationTokenSource();
@@ -111,12 +108,10 @@ namespace InfoPanel.FPS
                 _ = Task.Run(async () => await PerformInitialWindowCheckAsync().ConfigureAwait(false));
 
                 Console.WriteLine("FpsPlugin initialization completed");
-                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Initialize() completed successfully\n");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error during plugin initialization: {ex}");
-                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Initialize() error: {ex}\n");
             }
         }
 
@@ -127,7 +122,6 @@ namespace InfoPanel.FPS
         {
             try
             {
-                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Load() method called\n");
                 Console.WriteLine("=== FpsPlugin Load() called ===");
 
                 _sensorService.CreateAndRegisterSensors(containers);
@@ -136,12 +130,10 @@ namespace InfoPanel.FPS
                 _sensorService.UpdateSystemSensors(_currentState.System);
                 
                 Console.WriteLine("Sensors loaded and registered with InfoPanel");
-                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Load() completed successfully\n");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error loading sensors: {ex}");
-                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Load() error: {ex}\n");
             }
         }
 
