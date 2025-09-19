@@ -1,5 +1,41 @@
 # CHANGELOG
 
+## v1.1.0 (September 19, 2025)
+
+- **Major Architectural Refactoring and Reliability Improvements**
+  - **Service-Based Architecture**: Split monolithic 774-line code into dedicated services using C# best practices
+    - `PerformanceMonitoringService`: PresentMon integration, frame time calculations, and performance metrics
+    - `WindowDetectionService`: Windows API hooks, fullscreen detection, and process validation
+    - `SystemInformationService`: GPU detection, monitor information, and system queries
+    - `SensorManagementService`: InfoPanel sensor creation, registration, and updates
+  - **Dependency Injection Pattern**: Introduced service interfaces for better testability and maintainability
+  - **Enhanced Code Organization**: Added proper folder structure (Services/, Models/, Interfaces/, Constants/)
+  - **Comprehensive Data Models**: Created structured models for better type safety and data handling
+
+- **Critical Bug Fixes and Reliability Improvements**
+  - **Fixed Self-Detection Issue**: Plugin now excludes InfoPanel's own process and system overlays ("DisplayWindow")
+  - **Primary Display Filtering**: Only monitors fullscreen applications on the main display, ignoring secondary monitors
+  - **Enhanced App Closure Detection**: Implemented dual-detection system combining continuous monitoring and periodic cleanup
+  - **Improved State Management**: Simplified monitoring flags to prevent rapid switching between capture states
+  - **Process Validation**: Added robust process existence checks and enhanced process filtering
+  - **Better Error Handling**: Comprehensive exception handling and logging throughout the application
+
+- **Performance and Stability Enhancements**
+  - **Optimized Detection Logic**: Restored original fullscreen detection algorithm with service-based implementation
+  - **Reliable Cleanup**: Ensures sensors properly reset to 0 when applications close or lose fullscreen
+  - **Enhanced Logging**: Detailed debug output for troubleshooting and monitoring state transitions
+  - **Memory Management**: Proper resource cleanup and disposal patterns
+
+## v1.0.18 (September 19, 2025)
+
+- **Initial Refactoring Attempt** (Superseded by v1.1.0)
+  - Split monolithic code into dedicated services and modules with proper separation of concerns.
+  - Introduced dependency injection pattern with service interfaces for better testability.
+  - Created dedicated services for performance monitoring, window detection, system information, and sensor management.
+  - Added comprehensive data models and constants for better maintainability.
+  - Improved error handling and logging throughout the application.
+  - Note: This version had functionality issues that were resolved in v1.1.0.
+
 ## v1.0.17 (July 12, 2025)
 
 - **Improved Resolution Display Format**

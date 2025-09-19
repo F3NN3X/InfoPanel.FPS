@@ -1,0 +1,317 @@
+using InfoPanel.FPS.Constants;
+using InfoPanel.FPS.Interfaces;
+using InfoPanel.FPS.Models;
+using PresentMonFps;
+
+namespace InfoPanel.FPS.Services
+{
+    /// <summary>
+    /// Service responsible for monitoring application performance using PresentMon.
+    /// Manages frame time collection, 1% low FPS calculation, and performance metrics.
+    /// </summary>
+    public class PerformanceMonitoringService : IPerformanceMonitoringService
+    {
+        private readonly float[] _frameTimes = new float[MonitoringConstants.MaxFrameTimes];
+        private readonly float[] _histogram = new float[MonitoringConstants.HistogramSize];
+        
+        private int _frameTimeIndex;
+        private int _frameTimeCount;
+        private int _updateCount;
+        private DateTime _lastUpdate = DateTime.MinValue;
+        
+        private CancellationTokenSource? _cancellationTokenSource;
+        private volatile bool _isMonitoring;
+        private volatile uint _currentProcessId;
+
+        /// <summary>
+        /// Event fired when new performance metrics are available.
+        /// </summary>
+        public event Action<PerformanceMetrics>? MetricsUpdated;
+
+        /// <summary>
+        /// Indicates whether performance monitoring is currently active.
+        /// </summary>
+        public bool IsMonitoring => _isMonitoring;
+
+        /// <summary>
+        /// Starts monitoring performance for the specified process.
+        /// </summary>
+        /// <param name="processId">The process ID to monitor.</param>
+        /// <param name="cancellationToken">Cancellation token for the operation.</param>
+        /// <returns>A task representing the monitoring operation.</returns>
+        public async Task StartMonitoringAsync(uint processId, CancellationToken cancellationToken = default)
+        {
+            Console.WriteLine($"PerformanceMonitoringService.StartMonitoringAsync: Called for PID {processId}");
+            
+            if (_isMonitoring && _currentProcessId == processId)
+            {
+                Console.WriteLine($"PerformanceMonitoringService: Already monitoring process {processId}");
+                return;
+            }
+
+            Console.WriteLine($"PerformanceMonitoringService: Stopping previous monitoring and resetting metrics");
+            StopMonitoring();
+            ResetMetrics();
+
+            _currentProcessId = processId;
+            _cancellationTokenSource = new CancellationTokenSource();
+            
+            var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken, _cancellationTokenSource.Token).Token;
+
+            Console.WriteLine($"PerformanceMonitoringService: Starting monitoring with retry for PID {processId}");
+            await StartMonitoringWithRetryAsync(processId, combinedToken).ConfigureAwait(false);
+            
+            Console.WriteLine($"PerformanceMonitoringService: StartMonitoringAsync completed for PID {processId}, IsMonitoring: {_isMonitoring}");
+        }
+
+        /// <summary>
+        /// Stops performance monitoring and resets metrics.
+        /// </summary>
+        public void StopMonitoring()
+        {
+            _cancellationTokenSource?.Cancel();
+            _isMonitoring = false;
+            _currentProcessId = 0;
+            Console.WriteLine("Performance monitoring stopped");
+        }
+
+        /// <summary>
+        /// Gets the current performance metrics.
+        /// </summary>
+        /// <returns>Current performance metrics or null if not monitoring.</returns>
+        public PerformanceMetrics? GetCurrentMetrics()
+        {
+            if (!_isMonitoring || _frameTimeCount == 0)
+                return null;
+
+            var currentFrameTime = _frameTimeCount > 0 ? _frameTimes[(_frameTimeIndex - 1 + MonitoringConstants.MaxFrameTimes) % MonitoringConstants.MaxFrameTimes] : 0;
+            var currentFps = currentFrameTime > 0 ? 1000.0f / currentFrameTime : 0;
+
+            return new PerformanceMetrics
+            {
+                Fps = currentFps,
+                FrameTime = currentFrameTime,
+                OnePercentLowFps = CalculateOnePercentLowFps(),
+                FrameTimeCount = _frameTimeCount
+            };
+        }
+
+        /// <summary>
+        /// Starts FpsInspector with retry logic for robustness.
+        /// </summary>
+        private async Task StartMonitoringWithRetryAsync(uint processId, CancellationToken cancellationToken)
+        {
+            for (int attempt = 1; attempt <= MonitoringConstants.RetryAttempts; attempt++)
+            {
+                try
+                {
+                    var fpsRequest = new FpsRequest { TargetPid = processId };
+                    Console.WriteLine($"Starting FpsInspector for PID: {processId} (Attempt {attempt}/{MonitoringConstants.RetryAttempts})");
+                    
+                    _isMonitoring = true;
+                    await FpsInspector.StartForeverAsync(
+                        fpsRequest,
+                        OnFrameDataReceived,
+                        cancellationToken
+                    ).ConfigureAwait(false);
+                    
+                    Console.WriteLine($"FpsInspector started for PID: {processId}");
+                    break;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Console.WriteLine($"FpsInspector failed (attempt {attempt}/{MonitoringConstants.RetryAttempts}): {ex}");
+                    _isMonitoring = false;
+                    
+                    if (attempt < MonitoringConstants.RetryAttempts)
+                    {
+                        await Task.Delay(MonitoringConstants.RetryDelayMs, cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        ResetMetrics();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Unexpected error (attempt {attempt}/{MonitoringConstants.RetryAttempts}): {ex}");
+                    _isMonitoring = false;
+                    
+                    if (attempt < MonitoringConstants.RetryAttempts)
+                    {
+                        await Task.Delay(MonitoringConstants.RetryDelayMs, cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        ResetMetrics();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles incoming frame data from PresentMon and updates metrics.
+        /// </summary>
+        private void OnFrameDataReceived(FpsResult? result)
+        {
+            if (result == null)
+            {
+                Console.WriteLine("PerformanceMonitoringService.OnFrameDataReceived: Received null result");
+                return;
+            }
+                
+            if (_cancellationTokenSource?.IsCancellationRequested == true)
+            {
+                Console.WriteLine("PerformanceMonitoringService.OnFrameDataReceived: Cancellation requested, ignoring result");
+                return;
+            }
+
+            float fps = (float)result.Fps;
+            float frameTime = 1000.0f / fps;
+            
+            Console.WriteLine($"PerformanceMonitoringService.OnFrameDataReceived: FPS={fps:F1}, FrameTime={frameTime:F2}ms");
+            
+            UpdateFrameTimesAndMetrics(frameTime, fps);
+        }
+
+        /// <summary>
+        /// Updates frame time buffer and recalculates metrics, throttling updates.
+        /// </summary>
+        private void UpdateFrameTimesAndMetrics(float frameTime, float fps)
+        {
+            if (_cancellationTokenSource?.IsCancellationRequested == true)
+                return;
+
+            // Store frame time in circular buffer
+            _frameTimes[_frameTimeIndex] = frameTime;
+            _frameTimeIndex = (_frameTimeIndex + 1) % MonitoringConstants.MaxFrameTimes;
+            _frameTimeCount = Math.Min(_frameTimeCount + 1, MonitoringConstants.MaxFrameTimes);
+
+            _updateCount++;
+
+            // Recalculate 1% low FPS periodically
+            if (_updateCount % MonitoringConstants.LowFpsRecalcInterval == 0 
+                && _frameTimeCount >= MonitoringConstants.MinFrameTimesForLowFps)
+            {
+                RecalculateOnePercentLowFps();
+            }
+
+            // Throttle metric updates to reduce UI spam
+            DateTime now = DateTime.Now;
+            if ((now - _lastUpdate).TotalSeconds >= MonitoringConstants.UiUpdateIntervalSeconds)
+            {
+                var metrics = new PerformanceMetrics
+                {
+                    Fps = fps,
+                    FrameTime = frameTime,
+                    OnePercentLowFps = CalculateOnePercentLowFps(),
+                    FrameTimeCount = _frameTimeCount
+                };
+
+                Console.WriteLine($"PerformanceMonitoringService: Firing MetricsUpdated event - FPS={fps:F1}, FrameTime={frameTime:F2}ms");
+                MetricsUpdated?.Invoke(metrics);
+                _lastUpdate = now;
+            }
+        }
+
+        /// <summary>
+        /// Calculates 1% low FPS using histogram-based approximation.
+        /// </summary>
+        private float CalculateOnePercentLowFps()
+        {
+            if (_frameTimeCount < MonitoringConstants.MinFrameTimesForLowFps)
+                return 0;
+
+            Array.Clear(_histogram, 0, _histogram.Length);
+            
+            float minFrameTime = float.MaxValue;
+            float maxFrameTime = float.MinValue;
+
+            // Find min and max frame times
+            for (int i = 0; i < _frameTimeCount; i++)
+            {
+                float frameTime = _frameTimes[i];
+                minFrameTime = Math.Min(minFrameTime, frameTime);
+                maxFrameTime = Math.Max(maxFrameTime, frameTime);
+            }
+
+            float range = maxFrameTime - minFrameTime;
+            if (range <= 0)
+                return 0;
+
+            float bucketSize = range / _histogram.Length;
+
+            // Build histogram
+            for (int i = 0; i < _frameTimeCount; i++)
+            {
+                float ft = _frameTimes[i];
+                int index = (int)((ft - minFrameTime) / bucketSize);
+                if (index >= _histogram.Length)
+                    index = _histogram.Length - 1;
+                _histogram[index]++;
+            }
+
+            // Calculate 1% low frame time from histogram
+            float total = _frameTimeCount;
+            float onePercentCount = total * 0.01f;
+            float cumulative = 0;
+
+            for (int i = _histogram.Length - 1; i >= 0; i--)
+            {
+                cumulative += _histogram[i];
+                if (cumulative >= onePercentCount)
+                {
+                    float onePercentFrameTime = minFrameTime + (i + 0.5f) * bucketSize;
+                    return onePercentFrameTime > 0 ? 1000.0f / onePercentFrameTime : 0;
+                }
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Recalculates 1% low FPS and triggers metrics update.
+        /// </summary>
+        private void RecalculateOnePercentLowFps()
+        {
+            if (_frameTimeCount > 0)
+            {
+                var currentFrameTime = _frameTimes[(_frameTimeIndex - 1 + MonitoringConstants.MaxFrameTimes) % MonitoringConstants.MaxFrameTimes];
+                var currentFps = currentFrameTime > 0 ? 1000.0f / currentFrameTime : 0;
+                
+                var metrics = new PerformanceMetrics
+                {
+                    Fps = currentFps,
+                    FrameTime = currentFrameTime,
+                    OnePercentLowFps = CalculateOnePercentLowFps(),
+                    FrameTimeCount = _frameTimeCount
+                };
+
+                MetricsUpdated?.Invoke(metrics);
+            }
+        }
+
+        /// <summary>
+        /// Resets all performance metrics and buffers.
+        /// </summary>
+        private void ResetMetrics()
+        {
+            Array.Clear(_frameTimes, 0, _frameTimes.Length);
+            Array.Clear(_histogram, 0, _histogram.Length);
+            _frameTimeIndex = 0;
+            _frameTimeCount = 0;
+            _updateCount = 0;
+            _lastUpdate = DateTime.MinValue;
+        }
+
+        /// <summary>
+        /// Disposes the service and releases resources.
+        /// </summary>
+        public void Dispose()
+        {
+            StopMonitoring();
+            _cancellationTokenSource?.Dispose();
+        }
+    }
+}

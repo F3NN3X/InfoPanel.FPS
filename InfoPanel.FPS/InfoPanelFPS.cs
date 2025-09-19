@@ -1,22 +1,25 @@
-using System;
-using System.Diagnostics;
-using System.Management; // Added for WMI access
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using InfoPanel.FPS.Constants;
+using InfoPanel.FPS.Interfaces;
+using InfoPanel.FPS.Models;
+using InfoPanel.FPS.Services;
 using InfoPanel.Plugins;
-using PresentMonFps;
-using Vanara.PInvoke;
-using static Vanara.PInvoke.DwmApi;
-using static Vanara.PInvoke.User32;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.0.17
+ * Version: 1.1.0
  * Author: F3NN3X
  * Description: An optimized InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile) over 1000 frames, window title, display resolution, refresh rate, and GPU name in the UI. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
  * Changelog (Recent):
+ *   - v1.1.0 (September 19, 2025): Architectural refactoring and reliability improvements.
+ *     - Major refactoring using C# best practices with service-based architecture.
+ *     - Split monolithic code into dedicated services: PerformanceMonitoringService, WindowDetectionService, SystemInformationService, SensorManagementService.
+ *     - Introduced dependency injection pattern with service interfaces for better testability and maintainability.
+ *     - Added comprehensive data models and constants for better code organization.
+ *     - Fixed self-detection issue: plugin now excludes InfoPanel's own process and system overlays.
+ *     - Implemented primary display filtering: only monitors fullscreen apps on the main display.
+ *     - Enhanced cleanup detection: dual-detection system ensures reliable app closure detection.
+ *     - Improved state management: simplified monitoring flags prevent rapid switching issues.
+ *     - Added robust error handling and comprehensive logging throughout the application.
  *   - v1.0.17 (July 12, 2025): Improved resolution display format.
  *     - Changed resolution format to include spaces (e.g., "3840 x 2160" instead of "3840x2160") for better readability.
  *     - Updated all instances of resolution display for consistency.
@@ -24,87 +27,28 @@ using static Vanara.PInvoke.User32;
  *     - New PluginText sensor displays the name of the system's graphics card in the UI.
  *     - Added System.Management reference for WMI queries to detect GPU information.
  *     - Ensured all dependencies are in root folder without subdirectories.
- *   - v1.0.15 (May 21, 2025): Improved fullscreen detection for multi-monitor setups.
- *     - Used MonitorFromWindow for accurate fullscreen detection on the active monitor.
- *     - Continued reporting primary monitor's resolution and refresh rate for consistency.
- *   - v1.0.14 (May 21, 2025): Added display resolution and refresh rate sensors.
- *     - Added PluginText for resolution (e.g., "1920x1080") and PluginSensor for refresh rate (in Hz).
- *     - Fixed incorrect use of PluginSensor for resolution by switching to PluginText.
- *     - Cached monitor info to minimize API calls.
- *   - v1.0.13 (Mar 22, 2025): Added window title sensor.
- *     - New PluginText sensor displays the title of the current fullscreen app in the UI.
- *   - v1.0.12 (Mar 10, 2025): Simplified metrics.
- *     - Removed frame time variance sensor and related calculations for a leaner plugin.
  * Note: Full history in CHANGELOG.md. A benign log error ("Array is variable sized and does not follow prefix convention") may appear but does not impact functionality.
  */
 
 namespace InfoPanel.FPS
 {
-    // Monitors fullscreen app performance, exposing FPS, frame time, 1% low FPS, window title, resolution, and refresh rate via InfoPanel sensors
+    /// <summary>
+    /// Main plugin class that coordinates between services to monitor fullscreen application performance.
+    /// Uses dependency injection pattern with dedicated services for better separation of concerns.
+    /// </summary>
     public class FpsPlugin : BasePlugin, IDisposable
     {
-        // Sensors for displaying metrics in InfoPanel UI
-        private readonly PluginSensor _fpsSensor = new("fps", "Frames Per Second", 0, "FPS");
-        private readonly PluginSensor _onePercentLowFpsSensor = new(
-            "1% low fps",
-            "1% Low FPS",
-            0,
-            "FPS"
-        );
-        private readonly PluginSensor _currentFrameTimeSensor = new(
-            "current frame time",
-            "Current Frame Time",
-            0,
-            "ms"
-        );
-        private readonly PluginText _windowTitle = new(
-            "windowtitle",
-            "Currently Capturing",
-            "Nothing to capture"
-        );        private readonly PluginText _resolutionSensor = new(
-            "resolution",
-            "Display Resolution",
-            "0 x 0"
-        );
-        private readonly PluginSensor _refreshRateSensor = new(
-            "refreshrate",
-            "Display Refresh Rate",
-            0,
-            "Hz"
-        );
-        private readonly PluginText _gpuNameSensor = new("gpu-name", "GPU Name", "Unknown GPU"); // Added a new PluginSensor to display the GPU name.
+        private readonly IPerformanceMonitoringService _performanceService;
+        private readonly IWindowDetectionService _windowDetectionService;
+        private readonly ISystemInformationService _systemInfoService;
+        private readonly ISensorManagementService _sensorService;
 
-        // Circular buffer for frame times, used for percentile calculations
-        private readonly float[] _frameTimes = new float[1000];
-        private int _frameTimeIndex; // Current index in the frame time buffer
-        private int _frameTimeCount; // Number of frame times stored
-
-        // Manages cancellation for async operations
-        private CancellationTokenSource? _cts;
-        private volatile uint _currentPid; // Tracks the current fullscreen app's PID; 0 if none
-        private volatile bool _isMonitoring; // Indicates if FpsInspector is actively monitoring
-        private DateTime _lastEventTime = DateTime.MinValue; // Last time a window event was processed
-        private DateTime _lastUpdate = DateTime.MinValue; // Last time UI sensors were updated
-
-        // Variables for tracking frame time updates
-        private int _updateCount; // Number of frame time updates processed
-
-        // Windows event hook handle and delegate for foreground changes
-        private IntPtr _eventHook; // Handle to the event hook
-        private readonly User32.WinEventProc _winEventProcDelegate; // Delegate for event hook callback
-        private readonly float[] _histogram = new float[100]; // Pre-allocated histogram for 1% low calculation
-
-        // Constants defining operational limits
-        private const int MaxFrameTimes = 1000; // Maximum frame time samples in buffer
-        private const int RetryAttempts = 3; // Number of retries for FpsInspector startup
-        private const int RetryDelayMs = 1000; // Delay between retry attempts (ms)
-        private const int MinFrameTimesForLowFps = 10; // Minimum frame times for valid 1% low calculation
-        private const int LowFpsRecalcInterval = 30; // Recalculate 1% low every 30 frames
-        private const int EventDebounceMs = 500; // Debounce window events by 500ms
-        private const float FullscreenAreaThreshold = 0.95f; // Require 95% monitor area coverage for fullscreen detection
+        private readonly MonitoringState _currentState = new();
+        private CancellationTokenSource? _cancellationTokenSource;
+        private bool _disposed;
 
         /// <summary>
-        /// Initializes the plugin with its metadata.
+        /// Initializes the plugin with its metadata and creates service instances.
         /// </summary>
         public FpsPlugin()
             : base(
@@ -113,662 +57,458 @@ namespace InfoPanel.FPS
                 "Simple FPS plugin showing FPS, frame time, 1% low FPS, window title, resolution, and refresh rate using PresentMonFPS"
             )
         {
-            _winEventProcDelegate = new User32.WinEventProc(WinEventProc);
+            // Critical: Add early logging that should appear in any case
+            System.Diagnostics.Debug.WriteLine("=== InfoPanel.FPS Constructor Called ===");
+            Console.WriteLine("=== InfoPanel.FPS Constructor Called ===");
+            System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: FpsPlugin constructor called\n");
+
+            // Initialize services - in a real DI scenario, these would be injected
+            _performanceService = new PerformanceMonitoringService();
+            _windowDetectionService = new WindowDetectionService();
+            _systemInfoService = new SystemInformationService();
+            _sensorService = new SensorManagementService();
+
+            // Subscribe to service events
+            _performanceService.MetricsUpdated += OnPerformanceMetricsUpdated;
+            _windowDetectionService.WindowChanged += OnWindowChanged;
+
+            Console.WriteLine("FpsPlugin initialized with all services");
+            System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: FpsPlugin services initialized\n");
         }
 
-        // No configuration file is used
+        /// <summary>
+        /// No configuration file is used.
+        /// </summary>
         public override string? ConfigFilePath => null;
 
-        // Updates occur every 1 second for stable UI refreshes
-        public override TimeSpan UpdateInterval => TimeSpan.FromSeconds(1);
+        /// <summary>
+        /// Updates occur every 1 second for stable UI refreshes.
+        /// </summary>
+        public override TimeSpan UpdateInterval => TimeSpan.FromSeconds(MonitoringConstants.UiUpdateIntervalSeconds);
 
-        // Sets up event hooks and starts monitoring
+        /// <summary>
+        /// Initializes the plugin and starts monitoring services.
+        /// </summary>
         public override void Initialize()
         {
-            _cts = new CancellationTokenSource();
-            SetupEventHook();
-            _ = StartFPSMonitoringAsync(_cts.Token); // Start continuous monitoring in background
-            _ = StartInitialMonitoringAsync(_cts.Token); // Non-blocking initial PID check
-        }
-
-        // Performs initial PID check asynchronously without blocking Initialize
-        private async Task StartInitialMonitoringAsync(CancellationToken cancellationToken)
-        {
-            (uint pid, string windowTitle, string resolution, uint refreshRate) = GetActiveFullscreenProcessIdAndTitle();
-            if (pid != 0 && !_isMonitoring)
+            try
             {
-                _currentPid = pid;
-                _windowTitle.Value = windowTitle;
-                _resolutionSensor.Value = resolution;
-                _refreshRateSensor.Value = refreshRate;
-                ResetSensorsAndQueue();
-                await StartMonitoringWithRetryAsync(pid, cancellationToken).ConfigureAwait(false);
+                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Initialize() method called\n");
+                Console.WriteLine("=== FpsPlugin Initialize() called ===");
+
+                _cancellationTokenSource = new CancellationTokenSource();
+
+                // Initialize system information
+                _currentState.System = _systemInfoService.GetSystemInformation();
+
+                // Start window detection service
+                _windowDetectionService.StartMonitoring();
+
+                // Start continuous monitoring loop (like the original implementation)
+                _ = Task.Run(async () => await StartContinuousMonitoringAsync(_cancellationTokenSource.Token).ConfigureAwait(false));
+
+                // Perform initial window check
+                _ = Task.Run(async () => await PerformInitialWindowCheckAsync().ConfigureAwait(false));
+
+                Console.WriteLine("FpsPlugin initialization completed");
+                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Initialize() completed successfully\n");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during plugin initialization: {ex}");
+                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Initialize() error: {ex}\n");
             }
         }
 
-        // Closes the plugin by disposing resources
-        public override void Close() => Dispose();
-
-        // Finalizer ensures unmanaged resources are cleaned up if Dispose isn’t called
-        ~FpsPlugin()
-        {
-            Dispose(false);
-        }
-
-        // Disposes resources, both managed and unmanaged, based on the disposing context
-        protected virtual void Dispose(bool disposing)
-        {
-            ResetSensorsAndQueue(); // Reset sensors before cancelling tasks
-            _cts?.Cancel(); // Cancel any ongoing tasks
-            if (_eventHook != IntPtr.Zero)
-            {
-                UnhookWinEvent(_eventHook); // Release the Windows event hook
-                _eventHook = IntPtr.Zero;
-            }
-            _cts?.Dispose(); // Dispose the cancellation token source
-            _currentPid = 0; // Clear the current PID
-            _isMonitoring = false; // Mark monitoring as stopped
-            if (disposing)
-            {
-                Console.WriteLine("Plugin disposed; all sensors reset to 0, PID cleared");
-            }
-        }
-
-        // Public entry point for IDisposable.Dispose, ensuring proper cleanup
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this); // Prevent finalizer from running
-        }
-
-        // Registers sensors with InfoPanel’s UI container
+        /// <summary>
+        /// Registers sensors with InfoPanel's UI container.
+        /// </summary>
         public override void Load(List<IPluginContainer> containers)
         {
-            var container = new PluginContainer("FPS");
-            container.Entries.Add(_fpsSensor);
-            container.Entries.Add(_onePercentLowFpsSensor);
-            container.Entries.Add(_currentFrameTimeSensor);
-            container.Entries.Add(_windowTitle);
-            container.Entries.Add(_resolutionSensor);
-            container.Entries.Add(_refreshRateSensor);
-            container.Entries.Add(_gpuNameSensor); // Added GPU name sensor
-            containers.Add(container);
+            try
+            {
+                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Load() method called\n");
+                Console.WriteLine("=== FpsPlugin Load() called ===");
+
+                _sensorService.CreateAndRegisterSensors(containers);
+                
+                // Update sensors with initial system information
+                _sensorService.UpdateSystemSensors(_currentState.System);
+                
+                Console.WriteLine("Sensors loaded and registered with InfoPanel");
+                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Load() completed successfully\n");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading sensors: {ex}");
+                System.IO.File.AppendAllText("C:\\temp\\fps_plugin_debug.log", $"{DateTime.Now}: Load() error: {ex}\n");
+            }
         }
 
-        // Not implemented; UpdateAsync is used instead
+        /// <summary>
+        /// Not implemented; UpdateAsync is used instead.
+        /// </summary>
         public override void Update() => throw new NotImplementedException();
 
-        // Updates sensor values and checks for app closure every 1 second
+        /// <summary>
+        /// Periodic update method that updates sensors with current state.
+        /// Also performs cleanup detection like the original version.
+        /// </summary>
         public override async Task UpdateAsync(CancellationToken cancellationToken)
         {
-            (uint pid, string windowTitle, string resolution, uint refreshRate) = GetActiveFullscreenProcessIdAndTitle();
-            if (pid == 0 && _currentPid != 0) // App closed or lost fullscreen
+            try
             {
-                _cts?.Cancel();
-                _currentPid = 0;
-                _isMonitoring = false;
-                _fpsSensor.Value = 0;
-                _currentFrameTimeSensor.Value = 0;
-                _onePercentLowFpsSensor.Value = 0;
-                _windowTitle.Value = "-";
-                _resolutionSensor.Value = resolution;
-                _refreshRateSensor.Value = refreshRate;
-                Array.Clear(_frameTimes, 0, _frameTimes.Length);
-                Array.Clear(_histogram, 0, _histogram.Length);
-                _frameTimeIndex = 0;
-                _frameTimeCount = 0;
-                _updateCount = 0;
-                Console.WriteLine("UpdateAsync detected no fullscreen app; performance sensors reset to 0, resolution and refresh rate set to primary monitor");
+                // Check for app closure like the old version did
+                var currentWindow = _windowDetectionService.GetCurrentFullscreenWindow();
+                uint pid = currentWindow?.ProcessId ?? 0;
+                
+                // Key cleanup logic from old version: if no PID detected but we're still monitoring
+                if (pid == 0 && _performanceService.IsMonitoring)
+                {
+                    Console.WriteLine("UpdateAsync detected no fullscreen app; stopping monitoring and resetting sensors");
+                    await StopMonitoringAsync().ConfigureAwait(false);
+                }
+                // Additional check: if PID changed from what we're monitoring
+                else if (pid != 0 && _performanceService.IsMonitoring && _currentState.Window.ProcessId != pid)
+                {
+                    Console.WriteLine($"UpdateAsync detected PID change: monitoring {_currentState.Window.ProcessId} but found {pid}; stopping monitoring");
+                    await StopMonitoringAsync().ConfigureAwait(false);
+                }
+                // Check if monitored process still exists (additional safety check)
+                else if (_performanceService.IsMonitoring && _currentState.Window.ProcessId != 0)
+                {
+                    bool processExists = false;
+                    try
+                    {
+                        using var process = System.Diagnostics.Process.GetProcessById((int)_currentState.Window.ProcessId);
+                        processExists = !process.HasExited;
+                    }
+                    catch (ArgumentException)
+                    {
+                        processExists = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"UpdateAsync: Error checking process {_currentState.Window.ProcessId}: {ex}");
+                        processExists = false;
+                    }
+
+                    if (!processExists)
+                    {
+                        Console.WriteLine($"UpdateAsync: Monitored process {_currentState.Window.ProcessId} no longer exists; stopping monitoring");
+                        await StopMonitoringAsync().ConfigureAwait(false);
+                    }
+                }
+
+                // Update sensors with current state
+                _sensorService.UpdateSensors(_currentState);
+
+                _currentState.LastUpdate = DateTime.Now;
+
+                // Log current state for debugging
+                Console.WriteLine($"UpdateAsync - Monitoring: {_performanceService.IsMonitoring}, " +
+                                $"Window PID: {_currentState.Window.ProcessId}, " +
+                                $"Detected PID: {pid}, " +
+                                $"FPS: {_currentState.Performance.Fps:F1}, " +
+                                $"Title: {_currentState.Window.WindowTitle}, " +
+                                $"Resolution: {_currentState.System.Resolution}");
             }
-            else if (pid != 0 && !_isMonitoring) // New fullscreen app detected
+            catch (Exception ex)
             {
-                _fpsSensor.Value = 0;
-                _currentFrameTimeSensor.Value = 0;
-                _onePercentLowFpsSensor.Value = 0;
-                Array.Clear(_frameTimes, 0, _frameTimes.Length);
-                Array.Clear(_histogram, 0, _histogram.Length);
-                _frameTimeIndex = 0;
-                _frameTimeCount = 0;
-                _updateCount = 0;
-                _cts?.Cancel();
-                _cts = new CancellationTokenSource();
-                _currentPid = pid;
-                _windowTitle.Value = windowTitle;
-                _resolutionSensor.Value = resolution;
-                _refreshRateSensor.Value = refreshRate;
-                Console.WriteLine(
-                    "UpdateAsync starting/restarting monitoring for PID: {0}, Title: {1}, Resolution: {2}, Refresh Rate: {3}Hz",
-                    pid,
-                    windowTitle,
-                    resolution,
-                    refreshRate
-                );
-                _ = StartMonitoringWithRetryAsync(pid, _cts.Token); // Start monitoring in background
+                Console.WriteLine($"Error in UpdateAsync: {ex}");
             }
-            else if (pid != 0 && _currentPid == pid) // Update title and monitor info if still monitoring same app
-            {
-                _windowTitle.Value = windowTitle;
-                _resolutionSensor.Value = resolution;
-                _refreshRateSensor.Value = refreshRate;
-            }
-            else if (pid == 0 && _currentPid == 0) // No fullscreen app, ensure primary monitor settings
-            {
-                _windowTitle.Value = "-";
-                _resolutionSensor.Value = resolution;
-                _refreshRateSensor.Value = refreshRate;
-            }
-            // Log current sensor values for debugging
-            Console.WriteLine(
-                "UpdateAsync - FPS: {0}, Frame Time: {1}, 1% Low: {2}, Title: {3}, Resolution: {4}, Refresh Rate: {5}Hz, Frame Times Count: {6}",
-                _fpsSensor.Value,
-                _currentFrameTimeSensor.Value,
-                _onePercentLowFpsSensor.Value,
-                _windowTitle.Value,
-                _resolutionSensor.Value,
-                _refreshRateSensor.Value,
-                _frameTimeCount
-            );
-            // Update GPU name sensor
-            _gpuNameSensor.Value = GetGpuName();
+
             await Task.CompletedTask;
         }
 
-        // Sets up the Windows event hook to monitor foreground window changes
-        private void SetupEventHook()
+        /// <summary>
+        /// Closes the plugin by disposing resources.
+        /// </summary>
+        public override void Close() => Dispose();
+
+        /// <summary>
+        /// Performs initial window check asynchronously without blocking Initialize.
+        /// </summary>
+        private async Task PerformInitialWindowCheckAsync()
         {
-            _eventHook = SetWinEventHook(
-                    User32.EventConstants.EVENT_SYSTEM_FOREGROUND,
-                    User32.EventConstants.EVENT_SYSTEM_FOREGROUND,
-                    IntPtr.Zero,
-                    _winEventProcDelegate,
-                    0,
-                    0,
-                    User32.WINEVENT.WINEVENT_OUTOFCONTEXT
-                )
-                .DangerousGetHandle();
-            if (_eventHook == IntPtr.Zero)
-                Console.WriteLine("Failed to set up event hook");
+            try
+            {
+                await Task.Delay(500).ConfigureAwait(false); // Small delay for stabilization
+                
+                var currentWindow = _windowDetectionService.GetCurrentFullscreenWindow();
+                if (currentWindow?.IsValid == true)
+                {
+                    _currentState.Window = currentWindow;
+                    await StartMonitoringAsync(currentWindow.ProcessId).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in initial window check: {ex}");
+            }
         }
 
-        // Handles foreground window change events with debouncing
-        private void WinEventProc(
-            HWINEVENTHOOK hWinEventHook,
-            uint eventType,
-            HWND hwnd,
-            int idObject,
-            int idChild,
-            uint idEventThread,
-            uint dwmsEventTime
-        )
-        {
-            DateTime now = DateTime.Now;
-            if ((now - _lastEventTime).TotalMilliseconds < EventDebounceMs)
-                return; // Debounce events to prevent rapid firing
-            _lastEventTime = now;
-            _ = HandleWindowChangeAsync(); // Process change asynchronously
-        }
-
-        // Continuously monitors fullscreen apps and manages FpsInspector lifecycle
-        private async Task StartFPSMonitoringAsync(CancellationToken cancellationToken)
+        /// <summary>
+        /// Continuously monitors fullscreen apps and manages monitoring lifecycle.
+        /// This replicates the original StartFPSMonitoringAsync logic.
+        /// </summary>
+        private async Task StartContinuousMonitoringAsync(CancellationToken cancellationToken)
         {
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    (uint pid, string windowTitle, string resolution, uint refreshRate) = GetActiveFullscreenProcessIdAndTitle();
-                    Console.WriteLine(
-                        "Detected fullscreen process ID: {0}, Title: {1}, Resolution: {2}, Refresh Rate: {3}Hz",
-                        pid,
-                        windowTitle,
-                        resolution,
-                        refreshRate
-                    );
-                    if (pid != 0 && !_isMonitoring) // Start monitoring new fullscreen app
+                    var currentWindow = _windowDetectionService.GetCurrentFullscreenWindow();
+                    var systemInfo = _systemInfoService.GetSystemInformation();
+                    uint pid = currentWindow?.ProcessId ?? 0;
+
+                    Console.WriteLine($"Continuous monitoring check - PID: {pid}, " +
+                                    $"Title: {currentWindow?.WindowTitle ?? "None"}, " +
+                                    $"IsMonitoring: {_performanceService.IsMonitoring}, " +
+                                    $"CurrentWindowValid: {currentWindow?.IsValid}, " +
+                                    $"IsFullscreen: {currentWindow?.IsFullscreen}");
+
+                    if (pid != 0 && !_performanceService.IsMonitoring)
                     {
-                        _fpsSensor.Value = 0;
-                        _currentFrameTimeSensor.Value = 0;
-                        _onePercentLowFpsSensor.Value = 0;
-                        Array.Clear(_frameTimes, 0, _frameTimes.Length);
-                        Array.Clear(_histogram, 0, _histogram.Length);
-                        _frameTimeIndex = 0;
-                        _frameTimeCount = 0;
-                        _updateCount = 0;
-                        _cts?.Cancel();
-                        _cts = new CancellationTokenSource();
-                        _currentPid = pid;
-                        _windowTitle.Value = windowTitle;
-                        _resolutionSensor.Value = resolution;
-                        _refreshRateSensor.Value = refreshRate;
-                        await StartMonitoringWithRetryAsync(pid, _cts.Token).ConfigureAwait(false);
+                        Console.WriteLine($"STARTING monitoring for new fullscreen app PID {pid}");
+                        // Start monitoring new fullscreen app
+                        _currentState.Window = currentWindow!;
+                        _currentState.System = systemInfo;
+                        _currentState.IsMonitoring = true;
+                        
+                        // Reset performance metrics like the old version
+                        _currentState.Performance = new PerformanceMetrics();
+                        await StartMonitoringAsync(pid).ConfigureAwait(false);
                     }
-                    else if (pid == 0 && _currentPid != 0) // Stop monitoring when app closes
+                    else if (pid == 0 && _performanceService.IsMonitoring)
                     {
-                        _cts?.Cancel();
-                        _currentPid = 0;
-                        _isMonitoring = false;
-                        _fpsSensor.Value = 0;
-                        _currentFrameTimeSensor.Value = 0;
-                        _onePercentLowFpsSensor.Value = 0;
-                        _windowTitle.Value = "-";
-                        _resolutionSensor.Value = resolution;
-                        _refreshRateSensor.Value = refreshRate;
-                        Array.Clear(_frameTimes, 0, _frameTimes.Length);
-                        Array.Clear(_histogram, 0, _histogram.Length);
-                        _frameTimeIndex = 0;
-                        _frameTimeCount = 0;
-                        _updateCount = 0;
-                        Console.WriteLine(
-                            "No fullscreen app detected; performance sensors reset to 0, resolution and refresh rate set to primary monitor"
-                        );
+                        Console.WriteLine("STOPPING monitoring - no fullscreen app detected");
+                        // Stop monitoring when app closes or loses fullscreen
+                        await StopMonitoringAsync().ConfigureAwait(false);
+                        _currentState.System = systemInfo; // Update system info even when not monitoring
                     }
-                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken)
-                        .ConfigureAwait(false); // Check every second
+                    else if (pid != 0 && _performanceService.IsMonitoring)
+                    {
+                        Console.WriteLine($"App still fullscreen, checking if same process (Current: {_currentState.Window.ProcessId})");
+                        
+                        // Check if the currently monitored process still exists
+                        bool currentProcessExists = false;
+                        try
+                        {
+                            using var process = System.Diagnostics.Process.GetProcessById((int)_currentState.Window.ProcessId);
+                            currentProcessExists = !process.HasExited;
+                        }
+                        catch (ArgumentException)
+                        {
+                            // Process not found
+                            currentProcessExists = false;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error checking if process {_currentState.Window.ProcessId} exists: {ex}");
+                            currentProcessExists = false;
+                        }
+
+                        if (!currentProcessExists)
+                        {
+                            Console.WriteLine($"Currently monitored process {_currentState.Window.ProcessId} no longer exists, stopping monitoring");
+                            await StopMonitoringAsync().ConfigureAwait(false);
+                            _currentState.System = systemInfo;
+                        }
+                        else if (_currentState.Window.ProcessId == currentWindow!.ProcessId && 
+                            _currentState.Window.WindowTitle != currentWindow.WindowTitle)
+                        {
+                            Console.WriteLine($"Same process, updating window title from '{_currentState.Window.WindowTitle}' to '{currentWindow.WindowTitle}'");
+                            _currentState.Window.WindowTitle = currentWindow.WindowTitle;
+                        }
+                        else if (_currentState.Window.ProcessId != currentWindow.ProcessId)
+                        {
+                            Console.WriteLine($"DIFFERENT PROCESS DETECTED: Current={_currentState.Window.ProcessId}, New={currentWindow.ProcessId}. Switching monitoring.");
+                            // Different process - need to switch monitoring
+                            await StopMonitoringAsync().ConfigureAwait(false);
+                            _currentState.Window = currentWindow;
+                            _currentState.IsMonitoring = true;
+                            await StartMonitoringAsync(currentWindow.ProcessId).ConfigureAwait(false);
+                        }
+                        _currentState.System = systemInfo;
+                    }
+                    else if (pid == 0 && !_performanceService.IsMonitoring)
+                    {
+                        // No fullscreen app detected, update system info but keep sensors clear
+                        _currentState.System = systemInfo;
+                        _currentState.Window = new WindowInformation { WindowTitle = "-" }; // Match old version
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
                 }
             }
-            catch (TaskCanceledException) { } // Expected on cancellation
+            catch (TaskCanceledException) 
+            {
+                // Expected on cancellation
+            }
             catch (Exception ex)
             {
-                Console.WriteLine("Monitoring loop error: {0}", ex.ToString());
+                Console.WriteLine($"Continuous monitoring loop error: {ex}");
             }
-        }
-
-        // Handles window change events by checking fullscreen status and updating monitoring
-        private async Task HandleWindowChangeAsync()
-        {
-            (uint pid, string windowTitle, string resolution, uint refreshRate) = GetActiveFullscreenProcessIdAndTitle();
-            Console.WriteLine(
-                "Event detected - New PID: {0}, Title: {1}, Resolution: {2}, Refresh Rate: {3}Hz, Current PID: {4}, IsMonitoring: {5}",
-                pid,
-                windowTitle,
-                resolution,
-                refreshRate,
-                _currentPid,
-                _isMonitoring
-            );
-            if (pid != 0 && !_isMonitoring) // Start monitoring new fullscreen app
-            {
-                _fpsSensor.Value = 0;
-                _currentFrameTimeSensor.Value = 0;
-                _onePercentLowFpsSensor.Value = 0;
-                Array.Clear(_frameTimes, 0, _frameTimes.Length);
-                Array.Clear(_histogram, 0, _histogram.Length);
-                _frameTimeIndex = 0;
-                _frameTimeCount = 0;
-                _updateCount = 0;
-                _cts?.Cancel();
-                _cts = new CancellationTokenSource();
-                _currentPid = pid;
-                _windowTitle.Value = windowTitle;
-                _resolutionSensor.Value = resolution;
-                _refreshRateSensor.Value = refreshRate;
-                await StartMonitoringWithRetryAsync(pid, _cts.Token).ConfigureAwait(false);
-            }
-            else if (pid == 0 && _currentPid != 0) // Stop monitoring when app closes
-            {
-                _cts?.Cancel();
-                _currentPid = 0;
-                _isMonitoring = false;
-                _fpsSensor.Value = 0;
-                _currentFrameTimeSensor.Value = 0;
-                _onePercentLowFpsSensor.Value = 0;
-                _windowTitle.Value = "-";
-                _resolutionSensor.Value = resolution;
-                _refreshRateSensor.Value = refreshRate;
-                Array.Clear(_frameTimes, 0, _frameTimes.Length);
-                Array.Clear(_histogram, 0, _histogram.Length);
-                _frameTimeIndex = 0;
-                _frameTimeCount = 0;
-                _updateCount = 0;
-            }
-        }
-
-        // Starts FpsInspector with retry logic for robustness
-        private async Task StartMonitoringWithRetryAsync(
-            uint pid,
-            CancellationToken cancellationToken
-        )
-        {
-            for (int attempt = 1; attempt <= RetryAttempts; attempt++)
-            {
-                try
-                {
-                    var fpsRequest = new FpsRequest { TargetPid = pid };
-                    Console.WriteLine(
-                        "Starting FpsInspector for PID: {0} (Attempt {1}/{2})",
-                        pid,
-                        attempt,
-                        RetryAttempts
-                    );
-                    _isMonitoring = true;
-                    await FpsInspector
-                        .StartForeverAsync(
-                            fpsRequest,
-                            result =>
-                            {
-                                if (
-                                    result is null
-                                    || (_cts is null || _cts.IsCancellationRequested)
-                                )
-                                    return; // Skip if result is null or cancelled
-
-                                float fps = (float)result.Fps;
-                                float frameTime = 1000.0f / fps;
-                                UpdateFrameTimesAndMetrics(frameTime, fps);
-                            },
-                            cancellationToken
-                        )
-                        .ConfigureAwait(false);
-                    Console.WriteLine("FpsInspector started for PID: {0}", pid);
-                    break; // Success, exit retry loop
-                }
-                catch (InvalidOperationException ex)
-                {
-                    Console.WriteLine(
-                        "FpsInspector failed (attempt {0}/{1}): {2}",
-                        attempt,
-                        RetryAttempts,
-                        ex.ToString()
-                    );
-                    _isMonitoring = false;
-                    if (attempt < RetryAttempts)
-                        await Task.Delay(RetryDelayMs, cancellationToken).ConfigureAwait(false); // Wait before retry
-                    else
-                        ResetSensorsAndQueue(); // Final attempt failed, reset
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(
-                        "Unexpected error (attempt {0}/{1}): {2}",
-                        attempt,
-                        RetryAttempts,
-                        ex.ToString()
-                    );
-                    _isMonitoring = false;
-                    if (attempt < RetryAttempts)
-                        await Task.Delay(RetryDelayMs, cancellationToken).ConfigureAwait(false); // Wait before retry
-                    else
-                        ResetSensorsAndQueue(); // Final attempt failed, reset
-                }
-            }
-        }
-
-        // Updates frame time buffer and recalculates metrics, throttling UI updates to 1 second
-        private void UpdateFrameTimesAndMetrics(float frameTime, float fps)
-        {
-            if (_cts is null || _cts.IsCancellationRequested)
-                return; // Skip if cancelled
-
-            // Store frame time in circular buffer
-            _frameTimes[_frameTimeIndex] = frameTime;
-            _frameTimeIndex = (_frameTimeIndex + 1) % MaxFrameTimes;
-            _frameTimeCount = Math.Min(_frameTimeCount + 1, MaxFrameTimes);
-
-            // Increment update count for 1% low recalculation
-            _updateCount++;
-
-            // Recalculate 1% low FPS periodically
-            if (
-                _updateCount % LowFpsRecalcInterval == 0
-                && _frameTimeCount >= MinFrameTimesForLowFps
-            )
-                UpdateLowFpsMetrics();
-
-            // Update UI sensors every second
-            DateTime now = DateTime.Now;
-            if ((now - _lastUpdate).TotalSeconds >= 1)
-            {
-                _fpsSensor.Value = fps;
-                _currentFrameTimeSensor.Value = frameTime;
-                _lastUpdate = now;
-            }
-        }
-
-        // Calculates 1% low FPS using a histogram-based approximation over the frame time buffer
-        private void UpdateLowFpsMetrics()
-        {
-            Array.Clear(_histogram, 0, _histogram.Length);
-            if (_frameTimeCount == 0)
-                return; // No data to process
-
-            float minFrameTime = float.MaxValue;
-            float maxFrameTime = float.MinValue;
-
-            // First pass: Find min and max frame times
-            for (int i = 0; i < _frameTimeCount; i++)
-            {
-                float frameTime = _frameTimes[i];
-                minFrameTime = Math.Min(minFrameTime, frameTime);
-                maxFrameTime = Math.Max(maxFrameTime, frameTime);
-            }
-
-            float range = maxFrameTime - minFrameTime;
-            if (range <= 0)
-                return; // No variation, skip calculation
-
-            float bucketSize = range / _histogram.Length;
-
-            // Second pass: Build histogram
-            for (int i = 0; i < _frameTimeCount; i++)
-            {
-                float ft = _frameTimes[i];
-                int index = (int)((ft - minFrameTime) / bucketSize);
-                if (index >= _histogram.Length)
-                    index = _histogram.Length - 1; // Clamp to last bucket
-                _histogram[index]++;
-            }
-
-            // Calculate 1% low frame time from histogram
-            float total = _frameTimeCount;
-            float onePercentCount = total * 0.01f;
-            float onePercentFrameTime = 0;
-            float cumulative = 0;
-
-            for (int i = _histogram.Length - 1; i >= 0; i--)
-            {
-                cumulative += _histogram[i];
-                if (cumulative >= onePercentCount && onePercentFrameTime == 0)
-                {
-                    onePercentFrameTime = minFrameTime + (i + 0.5f) * bucketSize; // Midpoint of bucket
-                    break;
-                }
-            }
-
-            _onePercentLowFpsSensor.Value =
-                onePercentFrameTime > 0 ? 1000.0f / onePercentFrameTime : 0;
         }
 
         /// <summary>
-        /// Resets all sensors and internal state to initial values.
+        /// Starts performance monitoring for the specified process.
         /// </summary>
-        private void ResetSensorsAndQueue()
-        {
-            _fpsSensor.Value = 0;
-            _currentFrameTimeSensor.Value = 0;
-            _onePercentLowFpsSensor.Value = 0;            _windowTitle.Value = "Nothing to capture";
-            _resolutionSensor.Value = "0 x 0";
-            _refreshRateSensor.Value = 0;
-            Array.Clear(_frameTimes, 0, _frameTimes.Length);
-            Array.Clear(_histogram, 0, _histogram.Length);
-            _frameTimeIndex = 0;
-            _frameTimeCount = 0;
-            _updateCount = 0;
-        }
-
-        // Gets the process ID, window title, resolution, and refresh rate of the current fullscreen app
-        private (uint pid, string windowTitle, string resolution, uint refreshRate) GetActiveFullscreenProcessIdAndTitle()
-        {
-            // Get primary monitor settings for reporting
-            var (resolution, refreshRate) = GetPrimaryMonitorSettings();
-
-            HWND hWnd = GetForegroundWindow();
-            if (hWnd == IntPtr.Zero)
-            {
-                Console.WriteLine("GetActiveFullscreenProcessIdAndTitle: No foreground window (hWnd is null)");
-                return (0u, "", resolution, refreshRate);
-            }
-
-            if (!GetWindowRect(hWnd, out RECT windowRect))
-            {
-                Console.WriteLine("GetActiveFullscreenProcessIdAndTitle: Failed to get window rectangle for hWnd {0}", hWnd);
-                return (0u, "", resolution, refreshRate);
-            }
-
-            // Get the monitor hosting the window for fullscreen detection
-            HMONITOR hMonitor = MonitorFromWindow(hWnd, MonitorFlags.MONITOR_DEFAULTTONEAREST);
-            if (hMonitor == IntPtr.Zero)
-            {
-                Console.WriteLine("GetActiveFullscreenProcessIdAndTitle: No monitor found for hWnd {0}", hWnd);
-                return (0u, "", resolution, refreshRate);
-            }
-
-            var monitorInfo = new MONITORINFO { cbSize = (uint)Marshal.SizeOf<MONITORINFO>() };
-            if (!GetMonitorInfo(hMonitor, ref monitorInfo))
-            {
-                Console.WriteLine("GetActiveFullscreenProcessIdAndTitle: Failed to get monitor info for monitor {0}", hMonitor);
-                return (0u, "", resolution, refreshRate);
-            }
-
-            var monitorRect = monitorInfo.rcMonitor;
-            // Calculate areas for fullscreen detection
-            long windowArea = (long)(windowRect.right - windowRect.left) * (windowRect.bottom - windowRect.top);
-            long monitorArea = (long)(monitorRect.right - monitorRect.left) * (monitorRect.bottom - monitorRect.top);
-            bool isFullscreen = windowArea >= monitorArea * FullscreenAreaThreshold;
-
-            if (!isFullscreen) // Check extended bounds for borderless fullscreen
-            {
-                if (DwmGetWindowAttribute(hWnd, DWMWINDOWATTRIBUTE.DWMWA_EXTENDED_FRAME_BOUNDS, out RECT extendedFrameBounds).Succeeded)
-                {
-                    long extendedArea = (long)(extendedFrameBounds.right - extendedFrameBounds.left) * (extendedFrameBounds.bottom - extendedFrameBounds.top);
-                    isFullscreen = extendedArea >= monitorArea * FullscreenAreaThreshold;
-                    Console.WriteLine(
-                        "GetActiveFullscreenProcessIdAndTitle: Extended bounds check for hWnd {0}: Area={1}, MonitorArea={2}, IsFullscreen={3}",
-                        hWnd,
-                        extendedArea,
-                        monitorArea,
-                        isFullscreen
-                    );
-                }
-                else
-                {
-                    Console.WriteLine("GetActiveFullscreenProcessIdAndTitle: Failed to get extended frame bounds for hWnd {0}", hWnd);
-                }
-            }
-            else
-            {
-                Console.WriteLine(
-                    "GetActiveFullscreenProcessIdAndTitle: Window bounds check for hWnd {0}: Area={1}, MonitorArea={2}, IsFullscreen={3}",
-                    hWnd,
-                    windowArea,
-                    monitorArea,
-                    isFullscreen
-                );
-            }
-
-            if (isFullscreen)
-            {
-                GetWindowThreadProcessId(hWnd, out uint pid);
-                if (IsValidApplicationPid(pid))
-                {
-                    // Get window title
-                    int length = GetWindowTextLength(hWnd);
-                    string windowTitle = "";
-                    if (length > 0)
-                    {
-                        StringBuilder title = new StringBuilder(length + 1);
-                        GetWindowText(hWnd, title, title.Capacity);
-                        windowTitle = title.ToString();
-                    }
-                    else
-                    {
-                        windowTitle = "Untitled"; // Fallback if no title
-                    }
-
-                    Console.WriteLine(
-                        "GetActiveFullscreenProcessIdAndTitle: Success for hWnd {0}, PID={1}, Title={2}, Resolution={3}, RefreshRate={4}Hz",
-                        hWnd,
-                        pid,
-                        windowTitle,
-                        resolution,
-                        refreshRate
-                    );
-                    return (pid, windowTitle, resolution, refreshRate);
-                }
-                Console.WriteLine("GetActiveFullscreenProcessIdAndTitle: Invalid PID {0} for hWnd {1}", pid, hWnd);
-                return (0u, "", resolution, refreshRate);
-            }
-            Console.WriteLine("GetActiveFullscreenProcessIdAndTitle: Window hWnd {0} is not fullscreen, using primary monitor settings: Resolution={1}, RefreshRate={2}Hz", hWnd, resolution, refreshRate);
-            return (0u, "", resolution, refreshRate);
-        }
-
-        /// <summary>
-        /// Gets the primary monitor's default resolution and refresh rate.
-        /// </summary>
-        /// <returns>A tuple containing resolution and refresh rate.</returns>
-        private (string resolution, uint refreshRate) GetPrimaryMonitorSettings()
-        {
-            DEVMODE devMode = new DEVMODE();
-            devMode.dmSize = (ushort)Marshal.SizeOf<DEVMODE>();            if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode))
-            {
-                string resolution = $"{devMode.dmPelsWidth} x {devMode.dmPelsHeight}";
-                uint refreshRate = (uint)devMode.dmDisplayFrequency;
-                Console.WriteLine(
-                    "GetPrimaryMonitorSettings: Primary monitor resolution={0}, RefreshRate={1}Hz",
-                    resolution,
-                    refreshRate
-                );
-                return (resolution, refreshRate);
-            }            Console.WriteLine("GetPrimaryMonitorSettings: Failed to get primary monitor settings");
-            return ("0 x 0", 0u); // Fallback if retrieval fails
-        }
-
-        /// <summary>
-        /// Validates if a PID belongs to a legitimate application with a main window.
-        /// </summary>
-        /// <param name="pid">The process ID to validate.</param>
-        /// <returns>True if the PID is valid; otherwise, false.</returns>
-        private static bool IsValidApplicationPid(uint pid)
+        private async Task StartMonitoringAsync(uint processId)
         {
             try
             {
-                using var process = Process.GetProcessById((int)pid);
-                bool isValid = pid > 4 && process.MainWindowHandle != IntPtr.Zero;
-                Console.WriteLine("IsValidApplicationPid: PID={0}, MainWindowHandle={1}, IsValid={2}", pid, process.MainWindowHandle, isValid);
-                return isValid; // Exclude system PIDs and ensure window exists
-            }
-            catch (ArgumentException)
-            {
-                Console.WriteLine("IsValidApplicationPid: PID {0} not found", pid);
-                return false; // Process not found
+                if (_performanceService.IsMonitoring)
+                {
+                    Console.WriteLine($"Performance service already monitoring, stopping first");
+                    _performanceService.StopMonitoring();
+                }
+
+                Console.WriteLine($"StartMonitoringAsync: Starting monitoring for process ID: {processId}");
+
+                // Reset performance metrics like the old version
+                _currentState.Performance = new PerformanceMetrics();
+
+                // Start performance monitoring
+                var cancellationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
+                
+                Console.WriteLine($"StartMonitoringAsync: Calling _performanceService.StartMonitoringAsync for PID: {processId}");
+                await _performanceService.StartMonitoringAsync(processId, cancellationToken).ConfigureAwait(false);
+
+                Console.WriteLine($"StartMonitoringAsync: Performance service IsMonitoring: {_performanceService.IsMonitoring}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("IsValidApplicationPid: Error for PID {0}: {1}", pid, ex.ToString());
-                return false;
+                Console.WriteLine($"StartMonitoringAsync: Error starting monitoring for PID {processId}: {ex}");
+                _currentState.IsMonitoring = false;
             }
         }
 
         /// <summary>
-        /// Gets the name of the GPU in the system.
+        /// Stops performance monitoring and resets state.
         /// </summary>
-        /// <returns>The name of the GPU.</returns>
-        private string GetGpuName()
+        private async Task StopMonitoringAsync()
         {
             try
             {
-                using (var searcher = new ManagementObjectSearcher("select * from Win32_VideoController"))
-                {
-                    foreach (var obj in searcher.Get())
-                    {
-                        return obj["Name"]?.ToString() ?? "Unknown GPU";
-                    }
-                }
-                return "Unknown GPU"; // Return default if no GPU found
+                Console.WriteLine("Stopping performance monitoring");
+
+                _performanceService.StopMonitoring();
+                _currentState.IsMonitoring = false;
+                
+                // Reset state like the old version - clear window info and performance
+                _currentState.Window = new WindowInformation { WindowTitle = "-" }; // Match old version
+                _currentState.Performance = new PerformanceMetrics(); // Reset to 0s
+
+                // Update sensors immediately to show reset state
+                _sensorService.UpdateSensors(_currentState);
+
+                Console.WriteLine("Performance monitoring stopped and state reset");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error retrieving GPU name: {0}", ex.ToString());
-                return "Unknown GPU";
+                Console.WriteLine($"Error stopping monitoring: {ex}");
             }
+
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Handles performance metrics updates from the monitoring service.
+        /// </summary>
+        private void OnPerformanceMetricsUpdated(PerformanceMetrics metrics)
+        {
+            try
+            {
+                _currentState.Performance = metrics;
+                _sensorService.UpdatePerformanceSensors(metrics);
+                
+                Console.WriteLine($"Performance metrics updated - FPS: {metrics.Fps:F1}, " +
+                                $"Frame Time: {metrics.FrameTime:F2}ms, " +
+                                $"1% Low: {metrics.OnePercentLowFps:F1}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error handling performance metrics update: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Handles window change events from the detection service.
+        /// </summary>
+        private void OnWindowChanged(WindowInformation windowInfo)
+        {
+            try
+            {
+                Console.WriteLine($"Window changed - PID: {windowInfo.ProcessId}, " +
+                                $"Title: {windowInfo.WindowTitle}, " +
+                                $"Fullscreen: {windowInfo.IsFullscreen}");
+
+                // Update sensor immediately
+                _sensorService.UpdateWindowSensor(windowInfo);
+
+                // The actual monitoring logic will be handled in UpdateAsync
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error handling window change: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Disposes resources, both managed and unmanaged.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    try
+                    {
+                        // Unsubscribe from events
+                        _performanceService.MetricsUpdated -= OnPerformanceMetricsUpdated;
+                        _windowDetectionService.WindowChanged -= OnWindowChanged;
+
+                        // Stop and dispose services
+                        _performanceService?.Dispose();
+                        _windowDetectionService?.Dispose();
+
+                        // Reset sensors
+                        _sensorService?.ResetSensors();
+
+                        // Cancel any ongoing operations
+                        _cancellationTokenSource?.Cancel();
+                        _cancellationTokenSource?.Dispose();
+
+                        Console.WriteLine("FpsPlugin disposed successfully");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error during plugin disposal: {ex}");
+                    }
+                }
+
+                _disposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Public entry point for IDisposable.Dispose.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Finalizer ensures cleanup if Dispose isn't called.
+        /// </summary>
+        ~FpsPlugin()
+        {
+            Dispose(false);
         }
     }
 }

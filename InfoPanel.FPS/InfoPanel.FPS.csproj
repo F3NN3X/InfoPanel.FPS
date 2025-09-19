@@ -14,7 +14,7 @@
     <!-- Limit satellite resources to English only -->
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
     <!-- Define the plugin version -->
-    <Version>1.0.17</Version>
+    <Version>1.1.0</Version>
     <!-- Customize output path for Release builds -->
     <OutputPath Condition="'$(Configuration)' == 'Release'">bin\Release\net8.0-windows\InfoPanel.FPS-v$(Version)\InfoPanel.FPS</OutputPath>
     <!-- Prevent appending TargetFramework to OutputPath -->
@@ -37,13 +37,21 @@
     <Copy SourceFiles="@(SubdirDLLs)" DestinationFolder="$(OutputPath)" />
     <Copy SourceFiles="@(SubdirPDBs)" DestinationFolder="$(OutputPath)" />
     
+    <!-- Clean up unnecessary directories and files -->
     <ItemGroup>
       <DirectoriesToDelete Include="$(OutputPath)runtimes" />
       <DirectoriesToDelete Include="$(OutputPath)net8.0-windows" />
       <DirectoriesToDelete Include="$(OutputPath)amd64" />
+      <DirectoriesToDelete Include="$(OutputPath)arm64" />
+      <DirectoriesToDelete Include="$(OutputPath)x86" />
+      <FilesToDelete Include="$(OutputPath)*.pdb" Condition="'$(Configuration)' == 'Release'" />
+      <FilesToDelete Include="$(OutputPath)*.xml" />
+      <FilesToDelete Include="$(OutputPath)*.json" />
+      <FilesToDelete Include="$(OutputPath)System.CodeDom.dll" />
     </ItemGroup>
     
     <RemoveDir Directories="@(DirectoriesToDelete)" />
+    <Delete Files="@(FilesToDelete)" ContinueOnError="true" />
   </Target>
 
   <ItemGroup>
