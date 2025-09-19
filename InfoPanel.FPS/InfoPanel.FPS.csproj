@@ -54,6 +54,44 @@
     <Delete Files="@(FilesToDelete)" ContinueOnError="true" />
   </Target>
 
+  <!-- ZIP packaging for release builds -->
+  <Target Name="CreateReleaseZip" AfterTargets="MoveDependencyFiles" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <ZipFileName>InfoPanelFPS-v$(Version).zip</ZipFileName>
+      <ZipOutputPath>$(OutputPath)..\..\$(ZipFileName)</ZipOutputPath>
+      <PluginFolderName>InfoPanel.FPS</PluginFolderName>
+      <TempZipDir>$(OutputPath)..\temp_zip</TempZipDir>
+    </PropertyGroup>
+    
+    <Message Text="Creating release ZIP: $(ZipOutputPath)" Importance="high" />
+    
+    <!-- Remove existing ZIP and temp directory if they exist -->
+    <Delete Files="$(ZipOutputPath)" ContinueOnError="true" />
+    <RemoveDir Directories="$(TempZipDir)" ContinueOnError="true" />
+    
+    <!-- Create temp directory structure -->
+    <MakeDir Directories="$(TempZipDir)\$(PluginFolderName)" />
+    
+    <!-- Copy plugin files to temp directory -->
+    <ItemGroup>
+      <PluginFiles Include="$(OutputPath)**\*.*" />
+    </ItemGroup>
+    
+    <Copy SourceFiles="@(PluginFiles)" 
+          DestinationFiles="@(PluginFiles->'$(TempZipDir)\$(PluginFolderName)\%(RecursiveDir)%(Filename)%(Extension)')" />
+    
+    <!-- Create the ZIP file -->
+    <ZipDirectory 
+      SourceDirectory="$(TempZipDir)" 
+      DestinationFile="$(ZipOutputPath)" 
+      Overwrite="true" />
+    
+    <!-- Clean up temp directory -->
+    <RemoveDir Directories="$(TempZipDir)" />
+    
+    <Message Text="Release ZIP created successfully: $(ZipOutputPath)" Importance="high" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="PresentMonFps" Version="2.0.5" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.2" />
