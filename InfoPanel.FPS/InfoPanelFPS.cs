@@ -6,7 +6,7 @@ using InfoPanel.Plugins;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: F3NN3X
  * Description: An optimized InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile) over 1000 frames, window title, display resolution, refresh rate, and GPU name in the UI. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
  * Changelog (Recent):

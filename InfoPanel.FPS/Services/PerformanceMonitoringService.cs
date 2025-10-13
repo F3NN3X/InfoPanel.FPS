@@ -197,22 +197,63 @@ namespace InfoPanel.FPS.Services
                 RecalculateOnePercentLowFps();
             }
 
-            // Throttle metric updates to reduce UI spam
+            // Throttle metric updates to reduce UI spam and provide smooth averages
             DateTime now = DateTime.Now;
             if ((now - _lastUpdate).TotalSeconds >= MonitoringConstants.UiUpdateIntervalSeconds)
             {
-                var metrics = new PerformanceMetrics
-                {
-                    Fps = fps,
-                    FrameTime = frameTime,
-                    OnePercentLowFps = CalculateOnePercentLowFps(),
-                    FrameTimeCount = _frameTimeCount
-                };
-
-                Console.WriteLine($"PerformanceMonitoringService: Firing MetricsUpdated event - FPS={fps:F1}, FrameTime={frameTime:F2}ms");
-                MetricsUpdated?.Invoke(metrics);
+                // Calculate smoothed averages over recent frames for stable display
+                var smoothedMetrics = CalculateSmoothedMetrics();
+                
+                Console.WriteLine($"PerformanceMonitoringService: Firing MetricsUpdated event - FPS={smoothedMetrics.Fps:F1}, FrameTime={smoothedMetrics.FrameTime:F2}ms");
+                MetricsUpdated?.Invoke(smoothedMetrics);
                 _lastUpdate = now;
             }
+        }
+
+        /// <summary>
+        /// Calculates smoothed metrics by averaging recent frame times for stable display.
+        /// </summary>
+        private PerformanceMetrics CalculateSmoothedMetrics()
+        {
+            if (_frameTimeCount == 0)
+            {
+                return new PerformanceMetrics();
+            }
+
+            // Calculate average over the most recent frames (up to 1 second worth)
+            // At 60 FPS, this would be ~60 frames; at 120 FPS, ~120 frames
+            int framesToAverage = Math.Min(_frameTimeCount, 120); // Cap at 120 frames for very high FPS
+            
+            float totalFrameTime = 0;
+            int actualFrameCount = 0;
+            
+            // Sum the most recent frame times
+            for (int i = 0; i < framesToAverage; i++)
+            {
+                int index = (_frameTimeIndex - 1 - i + MonitoringConstants.MaxFrameTimes) % MonitoringConstants.MaxFrameTimes;
+                if (index >= 0 && index < MonitoringConstants.MaxFrameTimes)
+                {
+                    totalFrameTime += _frameTimes[index];
+                    actualFrameCount++;
+                }
+            }
+
+            if (actualFrameCount == 0)
+            {
+                return new PerformanceMetrics();
+            }
+
+            // Calculate smoothed values
+            float avgFrameTime = totalFrameTime / actualFrameCount;
+            float smoothedFps = avgFrameTime > 0 ? 1000.0f / avgFrameTime : 0;
+
+            return new PerformanceMetrics
+            {
+                Fps = smoothedFps,
+                FrameTime = avgFrameTime,
+                OnePercentLowFps = CalculateOnePercentLowFps(),
+                FrameTimeCount = _frameTimeCount
+            };
         }
 
         /// <summary>

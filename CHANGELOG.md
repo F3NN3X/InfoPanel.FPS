@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v1.1.2 (October 13, 2025)
+
+- **Improved FPS Display Smoothing**
+  - **Smoothed FPS Updates**: FPS values now display averaged results over recent frames instead of instantaneous values
+  - **Reduced Erratic Behavior**: Eliminated jumpy FPS readings by calculating rolling averages over up to 120 recent frames
+  - **Enhanced Readability**: FPS counter now updates once per second with stable, smoothed values for better user experience
+  - **Adaptive Averaging**: Automatically adjusts averaging window based on actual frame rate for optimal smoothing
+
 ## v1.1.1 (September 20, 2025)
 
 - **Critical Bug Fix**
