@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x64</Platforms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>1.0.0</Version>
+    <AssemblyName>InfoPanelFPSHelper</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Ensure all dependencies are included -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PublishSingleFile>false</PublishSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference the main plugin project for shared code -->
+    <ProjectReference Include="..\InfoPanel.FPS\InfoPanel.FPS.csproj">
+      <Private>true</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PresentMon FPS library -->
+    <PackageReference Include="PresentMonFps" Version="2.0.5" />
+  </ItemGroup>
+
+</Project>

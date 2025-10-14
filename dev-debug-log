@@ -1,0 +1,1081 @@
+------------------------------------------------------------------------------
+You may only use the Microsoft Visual Studio .NET/C/C++ Debugger (vsdbg) with
+Visual Studio Code, Visual Studio or Visual Studio for Mac software to help you
+develop and test your applications.
+------------------------------------------------------------------------------
+  Debug: Logging enabled with ConsoleDiagnosticLogger and min level: Debug
+Warning: Sentry option 'Debug' is set to true while Environment is production. Be aware this can cause performance degradation and is not advised. See https://docs.sentry.io/platforms/dotnet/configuration/diagnostic-logger for more information
+  Debug: DSN read from options: https://5ca30f9d2faba70d50918db10cee0d26@o4508414465146880.ingest.us.sentry.io/4508414467833856
+  Debug: This doesn't look like a Native AOT application build.
+  Debug: Initializing Hub for Dsn: 'https://5ca30f9d2faba70d50918db10cee0d26@o4508414465146880.ingest.us.sentry.io/4508414467833856'.
+Warning: Sentry option 'Debug' is set to true while Environment is production. Be aware this can cause performance degradation and is not advised. See https://docs.sentry.io/platforms/dotnet/configuration/diagnostic-logger for more information
+  Debug: Creating transport.
+  Debug: No cache directory path specified. Skipping caching transport creation.
+  Debug: Starting BackgroundWorker.
+  Debug: BackgroundWorker Started.
+  Debug: New scope pushed.
+  Debug: Registering integration: 'AutoSessionTrackingIntegration'.
+  Debug: Attempting to recover persisted session from file.
+  Debug: Persistence directory is not set, returning.
+  Debug: Created directory for installation ID file (C:\Users\joransrb\AppData\Local\Sentry\469550BD7904070149D93D658A87F9B29DE566D7).
+  Debug: Resolved installation ID 'bf7c523b-77d4-463d-bff9-93c7284a7493'.
+   Info: Started new session (SID: 115a716fe77445cdad09af886613d925; DID: bf7c523b-77d4-463d-bff9-93c7284a7493).
+  Debug: Persisting session (SID: '115a716fe77445cdad09af886613d925') to a file.
+  Debug: Persistence directory is not set, returning.
+  Debug: Enqueuing envelope
+   Info: Envelope queued up: ''
+  Debug: Registering integration: 'AppDomainUnhandledExceptionIntegration'.
+  Debug: Registering integration: 'AppDomainProcessExitIntegration'.
+  Debug: Registering integration: 'UnobservedTaskExceptionIntegration'.
+  Debug: Registering integration: 'SentryDiagnosticListenerIntegration'.
+   Info: DiagnosticSource Integration is disabled because tracing is disabled.
+  Debug: Registering integration: 'WinUIUnhandledExceptionIntegration'.
+  Debug: Using 'GzipBufferedRequestBodyHandler' body compression strategy with level Optimal.
+  Debug: Envelope handed off to transport (event ID: ''). 1 items in queue.
+  Error: Error while processing envelope (event ID: ''). 1 items in queue.
+System.Net.Http.HttpRequestException: The requested name is valid, but no data of the requested type was found. (o4508414465146880.ingest.us.sentry.io:443)
+ ---> System.Net.Sockets.SocketException (11004): The requested name is valid, but no data of the requested type was found.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.DecompressionHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at Sentry.Internal.Http.GzipBufferedRequestBodyHandler.SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+   at Sentry.Internal.Http.RetryAfterHandler.SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at Sentry.Internal.Http.HttpTransport.SendEnvelopeAsync(Envelope envelope, CancellationToken cancellationToken)
+   at Sentry.Internal.BackgroundWorker.DoWorkAsync()
+  Debug: De-queueing event
+[12:56:02 INF] Application started. Press Ctrl+C to shut down.
+[12:56:02 INF] Hosting environment: Production
+[12:56:02 INF] Content root path: E:\GitHub\PublicRepos\infopanel\InfoPanel\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64
+[12:56:03 DBG] LibreMonitor starting initialization
+[12:56:03 DBG] PluginMonitor starting initialization
+System.Windows.Data Error: 4 : Cannot find source for binding with reference 'ElementName=TitleBar'. BindingExpression:(no path); DataItem=null; target element is 'NavigationView' (Name='RootNavigation'); target property is 'TitleBar' (type 'TitleBar')
+[12:56:03 DBG] SetWindowPositionRelativeToScreen targetScreen=Monitor: \\.\DISPLAY4, Bounds={Left=-600,Top=1111,Width=600,Height=1024}, WorkingArea={Left=-600,Top=1111,Width=600,Height=1024}, Primary=False
+[12:56:03 DBG] SetWindowPositionRelativeToScreen targetScreen=\\.\DISPLAY4 x=-601 y=1111
+[12:56:03 DBG] Reading HWiNFO shared memory
+=== InfoPanel.FPS Constructor Called ===
+PerformanceMonitoringService: Initialized with DXGI frame monitoring
+DXGI provides anti-cheat compatible FPS monitoring using GPU performance counters
+Sensor management service initialized with all sensors
+FpsPlugin initialized with all services
+[12:56:03 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\SPOTIFY.png
+[12:56:03 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\arc-1.png
+[12:56:03 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\spg_00001.png
+[12:56:03 DBG] Typeface cache miss: Barlow-Bold-True-False
+[12:56:03 INF] Plugin Clock loaded successfully
+[12:56:03 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\spg_00001.png' loaded successfully
+[12:56:03 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\arc-1.png' loaded successfully
+[12:56:03 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\SPOTIFY.png' loaded successfully
+[12:56:04 DBG] Typeface cache miss: Barlow-Regular-False-False
+[12:56:04 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\topbar-bg.png
+[12:56:04 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\topbar-bg.png' loaded successfully
+[12:56:04 DBG] Typeface cache miss: Barlow-Bold-False-False
+[12:56:04 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\topbar.png
+[12:56:04 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\topbar.png' loaded successfully
+[12:56:04 DBG] Typeface cache miss: Barlow-Medium-False-False
+[12:56:04 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Rectangle-gpu-mem-trans.png
+[12:56:04 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Rectangle-gpu-mem-trans.png' loaded successfully
+[12:56:04 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00003.png
+[12:56:04 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00003.png' loaded successfully
+[12:56:04 DBG] Reading HWiNFO shared memory
+[12:56:06 DBG] Reading HWiNFO shared memory
+[12:56:07 INF] Plugin Drive Info loaded successfully
+[12:56:07 INF] Plugin HWiNFO Registry loaded successfully
+[12:56:07 INF] Plugin Network Info loaded successfully
+[12:56:07 INF] Plugin System Info loaded successfully
+[12:56:07 DBG] Plugin HWiNFO Registry task started
+[12:56:07 DBG] Plugin Drive Info task started
+[12:56:07 DBG] Reading HWiNFO shared memory
+[12:56:07 DBG] Plugin Network Info task started
+[12:56:07 DBG] Plugin System Info task started
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+[12:56:08 DBG] Reading HWiNFO shared memory
+[12:56:09 INF] Plugin Volume Info loaded successfully
+[12:56:09 INF] Plugin Weather Info - OpenWeatherMap loaded successfully
+=== FpsPlugin Initialize() called ===
+Primary monitor settings - Resolution: 3840 x 2160, Refresh Rate: 240Hz
+GPU detected: NVIDIA GeForce RTX 5090
+System info refreshed - Resolution: 3840 x 2160, Refresh: 240Hz, GPU: NVIDIA GeForce RTX 5090
+Window event hook established
+Window detection service started
+FpsPlugin initialization completed
+=== FpsPlugin Load() called ===
+Registered 7 sensors in FPS container
+System sensors updated - Resolution: 3840 x 2160, Refresh: 240Hz, GPU: NVIDIA GeForce RTX 5090
+Sensors loaded and registered with InfoPanel
+[12:56:09 INF] Plugin InfoPanel.FPS loaded successfully
+Weather Plugin: Reading INI file from C:\ProgramData\InfoPanel\plugins\InfoPanel.MetYr\InfoPanel.MetYr.dll.ini
+Weather Plugin: INI file content:
+[Yr Weather Plugin]
+Location = Brevik
+Latitude =
+Longitude =
+RefreshIntervalMinutes = 60
+DateTimeFormat = yyyy-MM-dd HH:mm
+ForecastDateFormat = ddd d MMM
+UtcOffsetHours = 2
+ForecastDays = 7
+TemperatureUnit = C
+IconUrl = https://raw.githubusercontent.com/Makin-Things/weather-icons/refs/heads/main/static/
+Weather Plugin: Validated format 'yyyy-MM-dd HH:mm' -> '2025-10-14 10:56'
+Weather Plugin: Validated format 'ddd d MMM' -> 'Tue 14 Oct'
+Weather Plugin: INI Latitude/Longitude invalid or missing, will use geocoding.
+Weather Plugin: Read location from INI: Brevik
+Weather Plugin: Refresh interval set to: 60 minutes
+Weather Plugin: DateTime format set to: yyyy-MM-dd HH:mm
+Weather Plugin: Forecast date format set to: ddd d MMM
+Weather Plugin: UTC offset hours set to: 2
+Weather Plugin: Forecast days set to: 7
+Weather Plugin: Temperature unit set to: C
+Weather Plugin: Validating IconUrl: 'https://raw.githubusercontent.com/Makin-Things/weather-icons/refs/heads/main/static/'
+Weather Plugin: Testing custom IconUrl: https://raw.githubusercontent.com/Makin-Things/weather-icons/refs/heads/main/static/
+[12:56:09 INF] Plugin Weather Info - MET/Yr loaded successfully
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: False, CurrentWindowValid: True, IsFullscreen: True
+STARTING monitoring for new fullscreen app PID 65804
+StartMonitoringAsync: Starting monitoring for process ID: 65804
+StartMonitoringAsync: Calling _performanceService.StartMonitoringAsync for PID: 65804
+[12:56:09 INF] Plugin Spotify loaded successfully
+PerformanceMonitoringService.StartMonitoringAsync: Called for PID 65804
+PerformanceMonitoringService: Stopping previous monitoring and resetting metrics
+Performance monitoring stopped
+PerformanceMonitoringService: Starting RTSS monitoring for PID 65804
+PerformanceMonitoringService: Starting DXGI frame monitoring (anti-cheat compatible)
+DXGIFrameMonitoringService: Starting DXGI frame monitoring for PID 65804
+[12:56:09 INF] Plugins loaded in 5750ms
+DXGIFrameMonitoringService: Frame monitoring loop started for PID 65804
+DXGIFrameMonitoringService: RTSS appEntrySize=12416, appArrSize=2396256
+DXGIFrameMonitoringService: RTSS maxEntries=192, appEntriesStart=32
+DXGIFrameMonitoringService: RTSS entry 0: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: RTSS entry 1: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: RTSS entry 2: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: RTSS entry 3: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: RTSS entry 4: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: RTSS entry 5: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: RTSS entry 6: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: RTSS entry 7: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: RTSS entry 8: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: RTSS entry 9: PIDs at offsets - 520:0, 524:0, 528:0, 532:0
+DXGIFrameMonitoringService: Process not found in RTSS shared memory
+Weather Plugin: Successfully accessed test SVG icon: https://raw.githubusercontent.com/Makin-Things/weather-icons/refs/heads/main/static/clear-day.svg
+[12:56:09 DBG] Plugin Volume Info task started
+[12:56:09 DBG] Plugin Weather Info - OpenWeatherMap task started
+[12:56:09 DBG] Plugin InfoPanel.FPS task started
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+[12:56:09 DBG] Plugin Weather Info - MET/Yr task started
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+Weather Plugin: UpdateAsync called at 2025-10-14T10:56:09Z
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+Weather Plugin: Geocoding URL: https://nominatim.openstreetmap.org/search?q=Brevik&format=json&limit=1
+[12:56:09 DBG] Plugin Spotify task started
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Performance service already monitoring, stopping first
+Performance monitoring stopped
+StartMonitoringAsync: Starting monitoring for process ID: 65804
+StartMonitoringAsync: Calling _performanceService.StartMonitoringAsync for PID: 65804
+PerformanceMonitoringService.StartMonitoringAsync: Called for PID 65804
+PerformanceMonitoringService: Stopping previous monitoring and resetting metrics
+Performance monitoring stopped
+PerformanceMonitoringService: Starting RTSS monitoring for PID 65804
+PerformanceMonitoringService: Starting DXGI frame monitoring (anti-cheat compatible)
+DXGIFrameMonitoringService: Already monitoring process 65804
+PerformanceMonitoringService: DXGI monitoring started
+PerformanceMonitoringService: StartMonitoringAsync completed for PID 65804
+StartMonitoringAsync: Performance service IsMonitoring: True
+Weather Plugin: Nominatim response: [{"place_id":154116111,"licence":"Data � OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright","osm_type":"node","osm_id":52199009,"lat":"59.3474836","lon":"18.2043939","class":"place","type":"suburb","place_rank":19,"importance":0.30929013509721104,"addresstype":"suburb","name":"Brevik","display_name":"Brevik, Liding� kommun, Stockholms l�n, 181 67, Sverige","boundingbox":["59.3274836","59.3674836","18.1843939","18.2243939"]}]
+Weather Plugin: Coordinates set from Nominatim - Lat: 59.3474836, Lon: 18.2043939
+Weather Plugin: Fetching current weather: https://api.met.no/weatherapi/nowcast/2.0/complete?lat=59.3475&lon=18.2044
+Weather Plugin: Nowcast response (first 500 chars): {"type":"Feature","geometry":{"type":"Point","coordinates":[18.2044,59.3475,10]},"properties":{"meta":{"updated_at":"2025-10-14T10:52:10Z","units":{"air_temperature":"celsius","precipitation_amount":"mm","precipitation_rate":"mm/h","relative_humidity":"%","wind_from_direction":"degrees","wind_speed":"m/s","wind_speed_of_gust":"m/s"},"radar_coverage":"ok"},"timeseries":[{"time":"2025-10-14T10:55:00Z","data":{"instant":{"details":{"air_temperature":8.8,"precipitation_rate":0.0,"relative_humidity":...
+Weather Plugin: Current timeseries from nowcast: 2025-10-14T10:55:00Z
+Weather Plugin: Fetching forecast: https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=59.3475&lon=18.2044
+Weather Plugin: Forecast response (first 500 chars): {"type":"Feature","geometry":{"type":"Point","coordinates":[18.2044,59.3475,10]},"properties":{"meta":{"updated_at":"2025-10-14T10:27:05Z","units":{"air_pressure_at_sea_level":"hPa","air_temperature":"celsius","air_temperature_max":"celsius","air_temperature_min":"celsius","air_temperature_percentile_10":"celsius","air_temperature_percentile_90":"celsius","cloud_area_fraction":"%","cloud_area_fraction_high":"%","cloud_area_fraction_low":"%","cloud_area_fraction_medium":"%","dew_point_temperature...
+Weather Plugin: Added forecast row - Date: Wed 15 Oct, Weather: Partly Cloudy, Temp: 12 �C / 6 �C, Precip: 0.0 mm, Wind: 3.0 m/s W
+Weather Plugin: Added forecast row - Date: Thu 16 Oct, Weather: Partly Cloudy, Temp: 9 �C / 6 �C, Precip: 0.0 mm, Wind: 3.4 m/s W
+Weather Plugin: Added forecast row - Date: Fri 17 Oct, Weather: Clear Sky, Temp: 8 �C / 2 �C, Precip: 0.0 mm, Wind: 3.1 m/s NW
+Weather Plugin: Added forecast row - Date: Sat 18 Oct, Weather: Clear Sky, Temp: 7 �C / 1 �C, Precip: 0.0 mm, Wind: 2.9 m/s NW
+Weather Plugin: Added forecast row - Date: Sun 19 Oct, Weather: Partly Cloudy, Temp: 8 �C / 2 �C, Precip: 0.0 mm, Wind: 3.4 m/s W
+Weather Plugin: Added forecast row - Date: Mon 20 Oct, Weather: Cloudy, Temp: 9 �C / 3 �C, Precip: 0.0 mm, Wind: 2.2 m/s SW
+Weather Plugin: Added forecast row - Date: Tue 21 Oct, Weather: Moderate Rain, Temp: 9 �C / 7 �C, Precip: 4.7 mm, Wind: 3.8 m/s SE
+Weather Plugin: Mapped symbol 'partlycloudy_day' to icon: cloudy-2-day, description: Partly Cloudy
+Weather Plugin: Using custom icon URL: https://raw.githubusercontent.com/Makin-Things/weather-icons/refs/heads/main/static/
+Weather Plugin: Checking SVG: https://raw.githubusercontent.com/Makin-Things/weather-icons/refs/heads/main/static/cloudy-2-day.svg
+Weather Plugin: Using SVG: https://raw.githubusercontent.com/Makin-Things/weather-icons/refs/heads/main/static/cloudy-2-day.svg
+Weather Plugin: Set data - Temp: 8.8�C, Weather: partlycloudy, Description: Partly Cloudy, Icon: cloudy-2-day
+Weather Plugin: UTC time: 2025-10-14 10:56:09 UTC
+Weather Plugin: Adjusted time: 2025-10-14 12:56:09 (offset: 2 hours)
+Weather Plugin: Last refreshed set to: 2025-10-14 12:56
+[12:56:09 DBG] Reading HWiNFO shared memory
+[12:56:10 DBG] Image 'https://raw.githubusercontent.com/Makin-Things/weather-icons/refs/heads/main/static/cloudy-2-day.svg' loaded successfully
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:11 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:12 DBG] Reading HWiNFO shared memory
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:13 DBG] Reading HWiNFO shared memory
+[12:56:14 INF] LibreHardwareMonitor computer opened in 11000ms
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:14 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00065.png
+[12:56:14 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00059.png
+[12:56:14 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00080.png
+[12:56:14 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00059.png' loaded successfully
+[12:56:14 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00080.png' loaded successfully
+[12:56:14 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00065.png' loaded successfully
+[12:56:14 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00064.png
+[12:56:14 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00060.png
+[12:56:14 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00064.png' loaded successfully
+[12:56:14 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00060.png' loaded successfully
+[12:56:15 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:15 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00063.png
+[12:56:15 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00081.png
+[12:56:15 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00063.png' loaded successfully
+[12:56:15 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00081.png' loaded successfully
+[12:56:16 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:16 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00079.png
+[12:56:16 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00079.png' loaded successfully
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:17 DBG] Reading HWiNFO shared memory
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:19 DBG] Reading HWiNFO shared memory
+DXGIFrameMonitoringService: Scanning 1229 GPU Engine instances for process 65804
+DXGIFrameMonitoringService: Found process-specific instance: pid_65804_luid_0x00000000_0x0001A6B3_phys_0_eng_6_engtype_VideoEncode
+DXGIFrameMonitoringService: Instance pid_65804_luid_0x00000000_0x0001A6B3_phys_0_eng_6_engtype_VideoEncode has 2 counters:
+    - Running Time
+    - Utilization Percentage
+DXGIFrameMonitoringService: Found utilization counter for process 65804: Utilization Percentage
+DXGIFrameMonitoringService: Counter test value: 0
+DXGIFrameMonitoringService: Using GPU utilization counter for FPS estimation
+DXGIFrameMonitoringService: Using GPU Performance Counter for frame rate
+DXGIFrameMonitoringService: Frame monitoring loop ended
+PerformanceMonitoringService: DXGI monitoring started
+PerformanceMonitoringService: StartMonitoringAsync completed for PID 65804
+StartMonitoringAsync: Performance service IsMonitoring: True
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:20 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:21 DBG] Reading HWiNFO shared memory
+[12:56:22 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:23 DBG] Reading HWiNFO shared memory
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:24 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+[12:56:25 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:26 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00058.png
+[12:56:26 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00058.png' loaded successfully
+[12:56:26 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:27 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00062.png
+[12:56:28 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00062.png' loaded successfully
+[12:56:28 DBG] Reading HWiNFO shared memory
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:29 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:30 DBG] Reading HWiNFO shared memory
+[12:56:31 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00060.png
+[12:56:31 DBG] Cache entry 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00060.png' evicted due to "Expired"
+[12:56:31 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00060.png' loaded successfully
+[12:56:31 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:31 DBG] LockedImage C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00060.png disposed.
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:32 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:33 DBG] Reading HWiNFO shared memory
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+[12:56:33 DBG] Image loaded from file: C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00061.png
+[12:56:33 DBG] Image 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00061.png' loaded successfully
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:33 DBG] Cache entry 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00064.png' evicted due to "Expired"
+[12:56:33 DBG] Cache entry 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00003.png' evicted due to "Expired"
+[12:56:33 DBG] LockedImage C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00064.png disposed.
+[12:56:33 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:33 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:33 DBG] LockedImage C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00003.png disposed.
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+[12:56:34 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:35 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:36 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:37 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:38 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:38 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:38 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:39 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:41 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:42 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+[12:56:43 DBG] Reading HWiNFO shared memory
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+[12:56:43 DBG] Cache entry 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00065.png' evicted due to "Expired"
+[12:56:43 DBG] Cache entry 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00081.png' evicted due to "Expired"
+[12:56:43 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:43 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:43 DBG] LockedImage C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00081.png disposed.
+[12:56:43 DBG] Cache entry 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00058.png' evicted due to "Expired"
+[12:56:43 DBG] LockedImage C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00065.png disposed.
+[12:56:43 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:43 DBG] LockedImage C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00058.png disposed.
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:45 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:46 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:47 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+[12:56:49 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:50 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 65804 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'bf6' (PID: 65804)
+Anti-cheat protected game detected: bf6 (PID: 65804) - bypassing fullscreen check
+WindowDetection: PID 65804 - IsAntiCheatGame: True
+Anti-cheat game detected - bypassing fullscreen check for hWnd: Vanara.PInvoke.HWND, Area: 8294400, Monitor: 8294400
+PID validation - PID: 65804, Process: bf6, Valid: true
+Fullscreen window detected - hWnd: Vanara.PInvoke.HWND, PID: 65804, Title: Battlefield� 6
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:51 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 2636 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'searchhost' (PID: 2636)
+IsAntiCheatProtectedGame: Process 'searchhost' is not an anti-cheat game
+WindowDetection: PID 2636 - IsAntiCheatGame: False
+Extended bounds check - hWnd: Vanara.PInvoke.HWND, Area: 938000, Monitor: 8294400, Fullscreen: False
+Window hWnd Vanara.PInvoke.HWND is not fullscreen
+ANTI-CHEAT BYPASS: Found 1 BF6 processes
+ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: 65804) - bypassing window detection
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+WindowDetection: Checking PID 2636 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'searchhost' (PID: 2636)
+IsAntiCheatProtectedGame: Process 'searchhost' is not an anti-cheat game
+WindowDetection: PID 2636 - IsAntiCheatGame: False
+Extended bounds check - hWnd: Vanara.PInvoke.HWND, Area: 938000, Monitor: 8294400, Fullscreen: False
+Window hWnd Vanara.PInvoke.HWND is not fullscreen
+ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: 65804) - bypassing window detection
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 2636 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'searchhost' (PID: 2636)
+IsAntiCheatProtectedGame: Process 'searchhost' is not an anti-cheat game
+WindowDetection: PID 2636 - IsAntiCheatGame: False
+Extended bounds check - hWnd: Vanara.PInvoke.HWND, Area: 938000, Monitor: 8294400, Fullscreen: False
+Window hWnd Vanara.PInvoke.HWND is not fullscreen
+ANTI-CHEAT BYPASS: Found 1 BF6 processes
+ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: 65804) - bypassing window detection
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+[12:56:52 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 75964 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'infopanel' (PID: 75964)
+IsAntiCheatProtectedGame: Process 'infopanel' is not an anti-cheat game
+WindowDetection: PID 75964 - IsAntiCheatGame: False
+Extended bounds check - hWnd: Vanara.PInvoke.HWND, Area: 2808000, Monitor: 8294400, Fullscreen: False
+Window hWnd Vanara.PInvoke.HWND is not fullscreen
+ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: 65804) - bypassing window detection
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+WindowDetection: Checking PID 75964 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'infopanel' (PID: 75964)
+IsAntiCheatProtectedGame: Process 'infopanel' is not an anti-cheat game
+WindowDetection: PID 75964 - IsAntiCheatGame: False
+Extended bounds check - hWnd: Vanara.PInvoke.HWND, Area: 2808000, Monitor: 8294400, Fullscreen: False
+Window hWnd Vanara.PInvoke.HWND is not fullscreen
+ANTI-CHEAT BYPASS: Found 1 BF6 processes
+ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: 65804) - bypassing window detection
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+[12:56:53 DBG] Cache entry 'C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00061.png' evicted due to "Expired"
+[12:56:53 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+[12:56:53 DBG] LockedImage C:\Users\joransrb\AppData\Local\InfoPanel\assets\5031e280-b9a7-422b-8239-7271f44a4fb3\Donut_00061.png disposed.
+WindowDetection: Checking PID 75964 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'infopanel' (PID: 75964)
+IsAntiCheatProtectedGame: Process 'infopanel' is not an anti-cheat game
+WindowDetection: PID 75964 - IsAntiCheatGame: False
+Extended bounds check - hWnd: Vanara.PInvoke.HWND, Area: 2808000, Monitor: 8294400, Fullscreen: False
+Window hWnd Vanara.PInvoke.HWND is not fullscreen
+ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: 65804) - bypassing window detection
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+Exception thrown: 'System.Net.Http.HttpRequestException' in System.Private.CoreLib.dll
+[12:56:54 DBG] Reading HWiNFO shared memory
+WindowDetection: Checking PID 75964 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'infopanel' (PID: 75964)
+IsAntiCheatProtectedGame: Process 'infopanel' is not an anti-cheat game
+WindowDetection: PID 75964 - IsAntiCheatGame: False
+Extended bounds check - hWnd: Vanara.PInvoke.HWND, Area: 37500, Monitor: 8294400, Fullscreen: False
+Window hWnd Vanara.PInvoke.HWND is not fullscreen
+ANTI-CHEAT BYPASS: Found 1 BF6 processes
+ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: 65804) - bypassing window detection
+Continuous monitoring check - PID: 65804, Title: Battlefield� 6, IsMonitoring: True, CurrentWindowValid: True, IsFullscreen: True
+App still fullscreen, checking if same process (Current: 65804)
+[12:56:54 DBG] Cache entry 'DISPLAY-5031e280-b9a7-422b-8239-7271f44a4fb3' evicted due to "Expired".
+WindowDetection: Checking PID 75964 for anti-cheat game detection
+IsAntiCheatProtectedGame: Checking process 'infopanel' (PID: 75964)
+IsAntiCheatProtectedGame: Process 'infopanel' is not an anti-cheat game
+WindowDetection: PID 75964 - IsAntiCheatGame: False
+Extended bounds check - hWnd: Vanara.PInvoke.HWND, Area: 37500, Monitor: 8294400, Fullscreen: False
+Window hWnd Vanara.PInvoke.HWND is not fullscreen
+ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: 65804) - bypassing window detection
+Sensors updated - FPS: 0, Frame Time: 0ms, 1% Low: 0, Title: Battlefield� 6, Resolution: 3840 x 2160, Refresh: 240Hz
+UpdateAsync - Monitoring: True, Window PID: 65804, Detected PID: 65804, FPS: 0.0, Title: Battlefield� 6
+[12:56:55 DBG] BeadaPanelTask stopping
+[12:56:55 DBG] TuringPanelTask stopping
+[12:56:55 DBG] LibreMonitor stopping
+[12:56:55 DBG] LibreMonitor task cancelled
+[12:56:55 DBG] Disposing resources for LibreMonitor
+[12:56:55 DBG] LibreMonitor stopped
+[12:56:55 DBG] PluginMonitor stopping
+[12:56:55 DBG] PluginMonitor task cancelled
+[12:56:55 DBG] Disposing resources for PluginMonitor
+[12:56:55 DBG] PluginMonitor stopped
+   Info: AppDomain process exited: Disposing SDK.
+   Info: Disposing the Hub.
+  Debug: Successfully flushed all events up to call to FlushAsync.
+The program '[75964] InfoPanel.exe' has exited with code 0 (0x0).

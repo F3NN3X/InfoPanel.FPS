@@ -211,16 +211,34 @@ namespace InfoPanel.FPS.Services
             {
                 if (windowInfo.IsValid)
                 {
-                    _windowTitleSensor.Value = !string.IsNullOrWhiteSpace(windowInfo.WindowTitle) 
+                    var newTitle = !string.IsNullOrWhiteSpace(windowInfo.WindowTitle) 
                         ? windowInfo.WindowTitle 
                         : "Untitled";
+                    
+                    // Preserve existing good titles - don't overwrite with generic defaults
+                    if (newTitle != "Untitled" || _windowTitleSensor.Value == SensorConstants.NoCapture || _windowTitleSensor.Value == SensorConstants.DefaultWindowTitle)
+                    {
+                        _windowTitleSensor.Value = newTitle;
+                        Console.WriteLine($"Window sensor updated - Title: {_windowTitleSensor.Value}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Window sensor preserved existing title - keeping: {_windowTitleSensor.Value}");
+                    }
                 }
                 else
                 {
-                    _windowTitleSensor.Value = SensorConstants.NoCapture;
+                    // Only reset to NoCapture if we don't have a good game title
+                    if (!_windowTitleSensor.Value.Contains("Battlefield") && !_windowTitleSensor.Value.Contains("bf6"))
+                    {
+                        _windowTitleSensor.Value = SensorConstants.NoCapture;
+                        Console.WriteLine($"Window sensor updated - Title: {_windowTitleSensor.Value}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Window sensor preserved game title - keeping: {_windowTitleSensor.Value}");
+                    }
                 }
-                
-                Console.WriteLine($"Window sensor updated - Title: {_windowTitleSensor.Value}");
             }
             catch (Exception ex)
             {

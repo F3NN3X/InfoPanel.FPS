@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## v1.1.4 (October 13, 2025)
+
+- **RTSS Integration for Enhanced Anti-Cheat Compatibility**
+  - **RTSS Support**: Added integration with RivaTuner Statistics Server (RTSS) for superior anti-cheat compatibility
+  - **Shared Memory Access**: Reads FPS data directly from RTSS shared memory, bypassing traditional ETW monitoring restrictions  
+  - **Multi-Application Support**: Works with MSI Afterburner, RivaTuner, and other RTSS-compatible applications
+  - **Automatic Detection**: Seamlessly detects and connects to RTSS when available, falling back to other methods when not
+  - **Real-Time Polling**: Efficient 500ms polling interval provides smooth, responsive FPS updates
+  - **Process Filtering**: Intelligently matches FPS data to the target game process for accurate monitoring
+
+- **Enhanced Fallback Architecture**
+  - **Prioritized Fallback System**: PresentMon → RTSS → System-wide ETW → Performance Counters
+  - **RTSS Priority**: RTSS becomes the primary fallback for anti-cheat protected games due to proven compatibility
+  - **Robust Error Handling**: Graceful degradation when RTSS is unavailable or disconnected
+  - **Connection Monitoring**: Automatically detects RTSS disconnections and attempts reconnection
+
+- **Gaming Compatibility Improvements**
+  - **Kernel Anti-Cheat Support**: Enhanced support for games with kernel-level protection (BattlEye, Easy Anti-Cheat, Vanguard, Javelin)
+  - **Modern Game Testing**: Specifically improved compatibility with Battlefield 2042/6, Valorant, PUBG, Rainbow Six Siege
+  - **Overlay Integration**: Works alongside popular gaming overlays that use RTSS for FPS display
+  - **Resource Cleanup**: Proper disposal of RTSS resources prevents memory leaks and connection issues
+
+## v1.1.3 (October 13, 2025)
+
+- **Anti-Cheat Compatibility Improvements**
+  - **Multi-Tier Fallback System**: Implemented cascading monitoring strategies to bypass kernel-level anti-cheat restrictions
+  - **System-Wide ETW Monitoring**: Added fallback to monitor all DirectX presentations when process-specific monitoring is blocked
+  - **Performance Counter Fallback**: Final fallback using system-level metrics when ETW monitoring is completely blocked
+  - **Enhanced Game Support**: Now compatible with games using kernel-level anti-cheat systems like Javelin (Battlefield 2042/6)
+  - **Intelligent Detection**: Automatically detects access denied scenarios and switches to compatible monitoring methods
+  - **Native Approach**: Uses only Windows APIs and system metrics to avoid anti-cheat detection while remaining accurate
+
+- **Technical Improvements**
+  - **Smart Error Handling**: Distinguishes between anti-cheat blocking and other monitoring failures
+  - **Refresh Rate Integration**: Uses monitor refresh rate for more accurate FPS estimation in fallback modes
+  - **Reduced Invasiveness**: Fallback methods are less likely to trigger anti-cheat detection
+  - **Maintained Accuracy**: Preserves FPS monitoring quality even in fallback modes
+
 ## v1.1.2 (October 13, 2025)
 
 - **Improved FPS Display Smoothing**

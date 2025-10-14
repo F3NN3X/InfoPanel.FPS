@@ -114,7 +114,13 @@ namespace InfoPanel.FPS.Services
             long monitorArea = (long)(monitorRect.right - monitorRect.left) * (monitorRect.bottom - monitorRect.top);
             bool isFullscreen = windowArea >= monitorArea * MonitoringConstants.FullscreenAreaThreshold;
 
-            if (!isFullscreen) // Check extended bounds for borderless fullscreen
+            // Get process ID for anti-cheat game detection
+            GetWindowThreadProcessId(hWnd, out uint pid);
+            Console.WriteLine($"WindowDetection: Checking PID {pid} for anti-cheat game detection");
+            bool isAntiCheatGame = IsAntiCheatProtectedGame(pid);
+            Console.WriteLine($"WindowDetection: PID {pid} - IsAntiCheatGame: {isAntiCheatGame}");
+
+            if (!isFullscreen && !isAntiCheatGame) // Check extended bounds for borderless fullscreen (unless anti-cheat game)
             {
                 if (DwmGetWindowAttribute(hWnd, DWMWINDOWATTRIBUTE.DWMWA_EXTENDED_FRAME_BOUNDS, out RECT extendedFrameBounds).Succeeded)
                 {
@@ -129,6 +135,11 @@ namespace InfoPanel.FPS.Services
                     Console.WriteLine($"Failed to get extended frame bounds for hWnd {hWnd}");
                 }
             }
+            else if (isAntiCheatGame)
+            {
+                Console.WriteLine($"Anti-cheat game detected - bypassing fullscreen check for hWnd: {hWnd}, Area: {windowArea}, Monitor: {monitorArea}");
+                isFullscreen = true; // Force fullscreen detection for anti-cheat games
+            }
             else
             {
                 Console.WriteLine($"Window bounds check - hWnd: {hWnd}, Area: {windowArea}, Monitor: {monitorArea}, Fullscreen: {isFullscreen}");
@@ -140,8 +151,7 @@ namespace InfoPanel.FPS.Services
                 return null;
             }
 
-            // Get process ID and validate
-            GetWindowThreadProcessId(hWnd, out uint pid);
+            // Validate PID (already obtained above)
             if (!IsValidApplicationPid(pid))
             {
                 Console.WriteLine($"Invalid PID {pid} for hWnd {hWnd}");
@@ -405,6 +415,56 @@ namespace InfoPanel.FPS.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Error validating PID {pid}: {ex}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a process is a known anti-cheat protected game that should be monitored regardless of fullscreen detection.
+        /// </summary>
+        private static bool IsAntiCheatProtectedGame(uint pid)
+        {
+            try
+            {
+                using var process = Process.GetProcessById((int)pid);
+                string processName = process.ProcessName.ToLowerInvariant();
+                
+                Console.WriteLine($"IsAntiCheatProtectedGame: Checking process '{processName}' (PID: {pid})");
+                
+                // List of known anti-cheat protected games that may block window detection
+                string[] antiCheatGames = 
+                {
+                    "bf6",           // Battlefield 6 (EAC)
+                    "battlefield",   // Battlefield series
+                    "valorant",      // Valorant (Vanguard)
+                    "apex",          // Apex Legends (EAC)
+                    "fortnite",      // Fortnite (BattlEye)
+                    "pubg",          // PUBG (BattlEye)
+                    "rainbow6",      // Rainbow Six Siege (BattlEye)
+                    "r6",            // Rainbow Six Siege
+                    "hunt",          // Hunt: Showdown (EAC)
+                    "deadbydaylight", // Dead by Daylight (EAC)
+                    "rust",          // Rust (EAC)
+                    "tarkov",        // Escape from Tarkov (BattlEye)
+                    "destiny2",      // Destiny 2 (BattlEye)
+                    "warframe"       // Warframe (custom anti-cheat)
+                };
+                
+                foreach (string gameName in antiCheatGames)
+                {
+                    if (processName.Contains(gameName))
+                    {
+                        Console.WriteLine($"Anti-cheat protected game detected: {processName} (PID: {pid}) - bypassing fullscreen check");
+                        return true;
+                    }
+                }
+                
+                Console.WriteLine($"IsAntiCheatProtectedGame: Process '{processName}' is not an anti-cheat game");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking anti-cheat game status for PID {pid}: {ex}");
                 return false;
             }
         }

@@ -6,10 +6,16 @@ using InfoPanel.Plugins;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.1.2
+ * Version: 1.1.5
  * Author: F3NN3X
- * Description: An optimized InfoPanel plugin using PresentMonFps to monitor fullscreen app performance. Tracks FPS, frame time, 1% low FPS (99th percentile) over 1000 frames, window title, display resolution, refresh rate, and GPU name in the UI. Updates every 1 second with efficient event-driven detection, ensuring immediate startup, reset on closure, and proper metric clearing.
+ * Description: An optimized InfoPanel plugin using GPU Performance Counters to monitor game performance. Tracks FPS, frame time, 1% low FPS over time, window title, display resolution, refresh rate, and GPU name in the UI. Updates every 2 seconds with event-driven detection and automatic game discovery. Features superior anti-cheat compatibility using external monitoring.
  * Changelog (Recent):
+ *   - v1.1.5 (October 13, 2025): Migrated to GPU Performance Counter-based monitoring.
+ *     - Replaced RTSS integration with universal GPU Performance Counter monitoring.
+ *     - Added GameFPSService for automatic game detection and FPS monitoring.
+ *     - Superior anti-cheat compatibility - works with Battlefield 6, Valorant, and other protected games.
+ *     - Enhanced monitoring resilience with automatic fallback detection and seamless transitions.
+ *     - Improved frame smoothing with rolling averages for stable FPS display updates.
  *   - v1.1.0 (September 19, 2025): Architectural refactoring and reliability improvements.
  *     - Major refactoring using C# best practices with service-based architecture.
  *     - Split monolithic code into dedicated services: PerformanceMonitoringService, WindowDetectionService, SystemInformationService, SensorManagementService.
@@ -130,6 +136,7 @@ namespace InfoPanel.FPS
                 _sensorService.UpdateSystemSensors(_currentState.System);
                 
                 Console.WriteLine("Sensors loaded and registered with InfoPanel");
+
             }
             catch (Exception ex)
             {
@@ -150,20 +157,52 @@ namespace InfoPanel.FPS
         {
             try
             {
-                // Check for app closure like the old version did
+                // Traditional window detection and monitoring logic
                 var currentWindow = _windowDetectionService.GetCurrentFullscreenWindow();
                 uint pid = currentWindow?.ProcessId ?? 0;
                 
-                // Key cleanup logic from old version: if no PID detected but we're still monitoring
-                if (pid == 0 && _performanceService.IsMonitoring)
+                // ANTI-CHEAT BYPASS: Force detection of BF6 if window detection fails
+                if (pid == 0)
                 {
-                    Console.WriteLine("UpdateAsync detected no fullscreen app; stopping monitoring and resetting sensors");
-                    await StopMonitoringAsync().ConfigureAwait(false);
+                    try
+                    {
+                        var bf6Processes = System.Diagnostics.Process.GetProcessesByName("bf6");
+                        if (bf6Processes.Length > 0)
+                        {
+                            pid = (uint)bf6Processes[0].Id;
+                            Console.WriteLine($"ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: {pid}) - bypassing window detection");
+                            currentWindow = new WindowInformation
+                            {
+                                ProcessId = pid,
+                                WindowHandle = bf6Processes[0].MainWindowHandle,
+                                WindowTitle = bf6Processes[0].MainWindowTitle ?? "Battlefield™ 6",
+                                IsFullscreen = true
+                            };
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"ANTI-CHEAT BYPASS: Error detecting BF6: {ex.Message}");
+                    }
                 }
-                // Additional check: if PID changed from what we're monitoring
+                
+                // If we found a fullscreen app but aren't monitoring it, start monitoring
+                if (pid != 0 && !_performanceService.IsMonitoring)
+                {
+                    Console.WriteLine($"UpdateAsync detected new fullscreen app (PID: {pid}); starting DXGI monitoring");
+                    await StartMonitoringAsync(pid).ConfigureAwait(false);
+                }
+                // If PID changed from what we're monitoring, switch to new process
                 else if (pid != 0 && _performanceService.IsMonitoring && _currentState.Window.ProcessId != pid)
                 {
-                    Console.WriteLine($"UpdateAsync detected PID change: monitoring {_currentState.Window.ProcessId} but found {pid}; stopping monitoring");
+                    Console.WriteLine($"UpdateAsync detected PID change: monitoring {_currentState.Window.ProcessId} but found {pid}; switching monitoring");
+                    await StopMonitoringAsync().ConfigureAwait(false);
+                    await StartMonitoringAsync(pid).ConfigureAwait(false);
+                }
+                // If no fullscreen app detected but we're still monitoring, stop
+                else if (pid == 0 && _performanceService.IsMonitoring)
+                {
+                    Console.WriteLine("UpdateAsync detected no fullscreen app; stopping monitoring and resetting sensors");
                     await StopMonitoringAsync().ConfigureAwait(false);
                 }
                 // Check if monitored process still exists (additional safety check)
@@ -202,8 +241,7 @@ namespace InfoPanel.FPS
                                 $"Window PID: {_currentState.Window.ProcessId}, " +
                                 $"Detected PID: {pid}, " +
                                 $"FPS: {_currentState.Performance.Fps:F1}, " +
-                                $"Title: {_currentState.Window.WindowTitle}, " +
-                                $"Resolution: {_currentState.System.Resolution}");
+                                $"Title: {_currentState.Window.WindowTitle}");
             }
             catch (Exception ex)
             {
@@ -211,6 +249,23 @@ namespace InfoPanel.FPS
             }
 
             await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Determines if a process is a system/non-gaming process that should be ignored.
+        /// </summary>
+        private bool IsSystemProcess(string processName)
+        {
+            var systemProcesses = new[]
+            {
+                "explorer", "dwm", "winlogon", "csrss", "services", "svchost", "lsass", "smss", "wininit",
+                "taskmgr", "taskhostw", "rundll32", "dllhost", "conhost", "fontdrvhost", "WUDFHost",
+                "spoolsv", "RuntimeBroker", "SearchIndexer", "audiodg", "SecurityHealthSystray",
+                "Adobe Desktop Service", "TextInputHost", "WaveLink", "Photoshop", "Files", "InfoPanel",
+                "Code", "notepad", "calc", "cmd", "powershell", "pwsh", "WindowsTerminal", "devenv"
+            };
+            
+            return systemProcesses.Any(sp => processName.Contains(sp, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -253,6 +308,36 @@ namespace InfoPanel.FPS
                     var currentWindow = _windowDetectionService.GetCurrentFullscreenWindow();
                     var systemInfo = _systemInfoService.GetSystemInformation();
                     uint pid = currentWindow?.ProcessId ?? 0;
+
+                    // ANTI-CHEAT BYPASS: Force detection of BF6 if window detection fails
+                    if (pid == 0)
+                    {
+                        try
+                        {
+                            var bf6Processes = System.Diagnostics.Process.GetProcessesByName("bf6");
+                            Console.WriteLine($"ANTI-CHEAT BYPASS: Found {bf6Processes.Length} BF6 processes");
+                            if (bf6Processes.Length > 0)
+                            {
+                                pid = (uint)bf6Processes[0].Id;
+                                Console.WriteLine($"ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: {pid}) - bypassing window detection");
+                                currentWindow = new WindowInformation
+                                {
+                                    ProcessId = pid,
+                                    WindowHandle = bf6Processes[0].MainWindowHandle,
+                                    WindowTitle = bf6Processes[0].MainWindowTitle ?? "Battlefield™ 6",
+                                    IsFullscreen = true
+                                };
+                            }
+                            else
+                            {
+                                Console.WriteLine("ANTI-CHEAT BYPASS: No BF6 processes found");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"ANTI-CHEAT BYPASS: Error detecting BF6: {ex.Message}");
+                        }
+                    }
 
                     Console.WriteLine($"Continuous monitoring check - PID: {pid}, " +
                                     $"Title: {currentWindow?.WindowTitle ?? "None"}, " +
@@ -389,8 +474,8 @@ namespace InfoPanel.FPS
                 _performanceService.StopMonitoring();
                 _currentState.IsMonitoring = false;
                 
-                // Reset state like the old version - clear window info and performance
-                _currentState.Window = new WindowInformation { WindowTitle = "-" }; // Match old version
+                // Reset state - clear window info and performance
+                _currentState.Window = new WindowInformation { WindowTitle = "-" };
                 _currentState.Performance = new PerformanceMetrics(); // Reset to 0s
 
                 // Update sensors immediately to show reset state
@@ -485,6 +570,8 @@ namespace InfoPanel.FPS
                 _disposed = true;
             }
         }
+
+
 
         /// <summary>
         /// Public entry point for IDisposable.Dispose.

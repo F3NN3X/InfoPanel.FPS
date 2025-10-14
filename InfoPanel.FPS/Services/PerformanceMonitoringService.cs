@@ -1,32 +1,90 @@
 using InfoPanel.FPS.Constants;
 using InfoPanel.FPS.Interfaces;
 using InfoPanel.FPS.Models;
-using PresentMonFps;
 
 namespace InfoPanel.FPS.Services
 {
     /// <summary>
-    /// Service responsible for monitoring application performance using PresentMon.
-    /// Manages frame time collection, 1% low FPS calculation, and performance metrics.
+    /// Service responsible for monitoring application performance via DXGI frame statistics.
+    /// Uses GPU performance counters for anti-cheat compatible FPS monitoring.
     /// </summary>
     public class PerformanceMonitoringService : IPerformanceMonitoringService
     {
+        private readonly DXGIFrameMonitoringService _dxgiService;
         private readonly float[] _frameTimes = new float[MonitoringConstants.MaxFrameTimes];
         private readonly float[] _histogram = new float[MonitoringConstants.HistogramSize];
         
         private int _frameTimeIndex;
         private int _frameTimeCount;
         private int _updateCount;
-        private DateTime _lastUpdate = DateTime.MinValue;
         
         private CancellationTokenSource? _cancellationTokenSource;
         private volatile bool _isMonitoring;
         private volatile uint _currentProcessId;
 
         /// <summary>
+        /// Initializes a new instance of the PerformanceMonitoringService with DXGI.
+        /// </summary>
+        public PerformanceMonitoringService()
+        {
+            _dxgiService = new DXGIFrameMonitoringService();
+            _dxgiService.FpsUpdated += OnFpsUpdated;
+            
+            Console.WriteLine("PerformanceMonitoringService: Initialized with DXGI frame monitoring");
+            Console.WriteLine("DXGI provides anti-cheat compatible FPS monitoring using GPU performance counters");
+        }
+
+        /// <summary>
         /// Event fired when new performance metrics are available.
         /// </summary>
         public event Action<PerformanceMetrics>? MetricsUpdated;
+
+        /// <summary>
+        /// Handles FPS updates from DXGI service.
+        /// </summary>
+        private void OnFpsUpdated(double fps, double frameTimeMs)
+        {
+            if (!_isMonitoring || fps <= 0)
+                return;
+
+            // Add frame time to circular buffer
+            _frameTimes[_frameTimeIndex] = (float)frameTimeMs;
+            _frameTimeIndex = (_frameTimeIndex + 1) % MonitoringConstants.MaxFrameTimes;
+            if (_frameTimeCount < MonitoringConstants.MaxFrameTimes)
+                _frameTimeCount++;
+
+            // Update histogram for percentile calculations
+            UpdateHistogram((float)frameTimeMs);
+
+            // Calculate metrics
+            var metrics = CalculateMetrics((float)fps, (float)frameTimeMs);
+            MetricsUpdated?.Invoke(metrics);
+
+            _updateCount++;
+        }
+
+        /// <summary>
+        /// Updates the frame time histogram for percentile calculations.
+        /// </summary>
+        private void UpdateHistogram(float frameTime)
+        {
+            int binIndex = Math.Min((int)(frameTime / 2.0f), MonitoringConstants.HistogramSize - 1);
+            _histogram[binIndex]++;
+        }
+
+        /// <summary>
+        /// Calculates performance metrics from current FPS and frame time.
+        /// </summary>
+        private PerformanceMetrics CalculateMetrics(float fps, float frameTime)
+        {
+            return new PerformanceMetrics
+            {
+                Fps = fps,
+                FrameTime = frameTime,
+                OnePercentLowFps = CalculateOnePercentLowFps(),
+                FrameTimeCount = _frameTimeCount
+            };
+        }
 
         /// <summary>
         /// Indicates whether performance monitoring is currently active.
@@ -36,9 +94,6 @@ namespace InfoPanel.FPS.Services
         /// <summary>
         /// Starts monitoring performance for the specified process.
         /// </summary>
-        /// <param name="processId">The process ID to monitor.</param>
-        /// <param name="cancellationToken">Cancellation token for the operation.</param>
-        /// <returns>A task representing the monitoring operation.</returns>
         public async Task StartMonitoringAsync(uint processId, CancellationToken cancellationToken = default)
         {
             Console.WriteLine($"PerformanceMonitoringService.StartMonitoringAsync: Called for PID {processId}");
@@ -59,10 +114,10 @@ namespace InfoPanel.FPS.Services
             var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken, _cancellationTokenSource.Token).Token;
 
-            Console.WriteLine($"PerformanceMonitoringService: Starting monitoring with retry for PID {processId}");
-            await StartMonitoringWithRetryAsync(processId, combinedToken).ConfigureAwait(false);
+            Console.WriteLine($"PerformanceMonitoringService: Starting RTSS monitoring for PID {processId}");
+            await StartDXGIMonitoringAsync(processId, combinedToken).ConfigureAwait(false);
             
-            Console.WriteLine($"PerformanceMonitoringService: StartMonitoringAsync completed for PID {processId}, IsMonitoring: {_isMonitoring}");
+            Console.WriteLine($"PerformanceMonitoringService: StartMonitoringAsync completed for PID {processId}");
         }
 
         /// <summary>
@@ -77,14 +132,10 @@ namespace InfoPanel.FPS.Services
         }
 
         /// <summary>
-        /// Gets the current performance metrics.
+        /// Gets current performance metrics (average of buffered frame times).
         /// </summary>
-        /// <returns>Current performance metrics or null if not monitoring.</returns>
-        public PerformanceMetrics? GetCurrentMetrics()
+        public PerformanceMetrics GetCurrentMetrics()
         {
-            if (!_isMonitoring || _frameTimeCount == 0)
-                return null;
-
             var currentFrameTime = _frameTimeCount > 0 ? _frameTimes[(_frameTimeIndex - 1 + MonitoringConstants.MaxFrameTimes) % MonitoringConstants.MaxFrameTimes] : 0;
             var currentFps = currentFrameTime > 0 ? 1000.0f / currentFrameTime : 0;
 
@@ -98,213 +149,49 @@ namespace InfoPanel.FPS.Services
         }
 
         /// <summary>
-        /// Starts FpsInspector with retry logic for robustness.
+        /// Starts DXGI monitoring.
         /// </summary>
-        private async Task StartMonitoringWithRetryAsync(uint processId, CancellationToken cancellationToken)
+        private async Task StartDXGIMonitoringAsync(uint processId, CancellationToken cancellationToken)
         {
-            for (int attempt = 1; attempt <= MonitoringConstants.RetryAttempts; attempt++)
-            {
-                try
-                {
-                    var fpsRequest = new FpsRequest { TargetPid = processId };
-                    Console.WriteLine($"Starting FpsInspector for PID: {processId} (Attempt {attempt}/{MonitoringConstants.RetryAttempts})");
-                    
-                    _isMonitoring = true;
-                    await FpsInspector.StartForeverAsync(
-                        fpsRequest,
-                        OnFrameDataReceived,
-                        cancellationToken
-                    ).ConfigureAwait(false);
-                    
-                    Console.WriteLine($"FpsInspector started for PID: {processId}");
-                    break;
-                }
-                catch (InvalidOperationException ex)
-                {
-                    Console.WriteLine($"FpsInspector failed (attempt {attempt}/{MonitoringConstants.RetryAttempts}): {ex}");
-                    _isMonitoring = false;
-                    
-                    if (attempt < MonitoringConstants.RetryAttempts)
-                    {
-                        await Task.Delay(MonitoringConstants.RetryDelayMs, cancellationToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        ResetMetrics();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Unexpected error (attempt {attempt}/{MonitoringConstants.RetryAttempts}): {ex}");
-                    _isMonitoring = false;
-                    
-                    if (attempt < MonitoringConstants.RetryAttempts)
-                    {
-                        await Task.Delay(MonitoringConstants.RetryDelayMs, cancellationToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        ResetMetrics();
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Handles incoming frame data from PresentMon and updates metrics.
-        /// </summary>
-        private void OnFrameDataReceived(FpsResult? result)
-        {
-            if (result == null)
-            {
-                Console.WriteLine("PerformanceMonitoringService.OnFrameDataReceived: Received null result");
-                return;
-            }
-                
-            if (_cancellationTokenSource?.IsCancellationRequested == true)
-            {
-                Console.WriteLine("PerformanceMonitoringService.OnFrameDataReceived: Cancellation requested, ignoring result");
-                return;
-            }
-
-            float fps = (float)result.Fps;
-            float frameTime = 1000.0f / fps;
+            Console.WriteLine("PerformanceMonitoringService: Starting DXGI frame monitoring (anti-cheat compatible)");
             
-            Console.WriteLine($"PerformanceMonitoringService.OnFrameDataReceived: FPS={fps:F1}, FrameTime={frameTime:F2}ms");
+            _isMonitoring = true;
             
-            UpdateFrameTimesAndMetrics(frameTime, fps);
-        }
-
-        /// <summary>
-        /// Updates frame time buffer and recalculates metrics, throttling updates.
-        /// </summary>
-        private void UpdateFrameTimesAndMetrics(float frameTime, float fps)
-        {
-            if (_cancellationTokenSource?.IsCancellationRequested == true)
-                return;
-
-            // Store frame time in circular buffer
-            _frameTimes[_frameTimeIndex] = frameTime;
-            _frameTimeIndex = (_frameTimeIndex + 1) % MonitoringConstants.MaxFrameTimes;
-            _frameTimeCount = Math.Min(_frameTimeCount + 1, MonitoringConstants.MaxFrameTimes);
-
-            _updateCount++;
-
-            // Recalculate 1% low FPS periodically
-            if (_updateCount % MonitoringConstants.LowFpsRecalcInterval == 0 
-                && _frameTimeCount >= MonitoringConstants.MinFrameTimesForLowFps)
-            {
-                RecalculateOnePercentLowFps();
-            }
-
-            // Throttle metric updates to reduce UI spam and provide smooth averages
-            DateTime now = DateTime.Now;
-            if ((now - _lastUpdate).TotalSeconds >= MonitoringConstants.UiUpdateIntervalSeconds)
-            {
-                // Calculate smoothed averages over recent frames for stable display
-                var smoothedMetrics = CalculateSmoothedMetrics();
-                
-                Console.WriteLine($"PerformanceMonitoringService: Firing MetricsUpdated event - FPS={smoothedMetrics.Fps:F1}, FrameTime={smoothedMetrics.FrameTime:F2}ms");
-                MetricsUpdated?.Invoke(smoothedMetrics);
-                _lastUpdate = now;
-            }
-        }
-
-        /// <summary>
-        /// Calculates smoothed metrics by averaging recent frame times for stable display.
-        /// </summary>
-        private PerformanceMetrics CalculateSmoothedMetrics()
-        {
-            if (_frameTimeCount == 0)
-            {
-                return new PerformanceMetrics();
-            }
-
-            // Calculate average over the most recent frames (up to 1 second worth)
-            // At 60 FPS, this would be ~60 frames; at 120 FPS, ~120 frames
-            int framesToAverage = Math.Min(_frameTimeCount, 120); // Cap at 120 frames for very high FPS
+            // Start DXGI monitoring
+            await _dxgiService.StartMonitoringAsync(processId, cancellationToken).ConfigureAwait(false);
             
-            float totalFrameTime = 0;
-            int actualFrameCount = 0;
-            
-            // Sum the most recent frame times
-            for (int i = 0; i < framesToAverage; i++)
-            {
-                int index = (_frameTimeIndex - 1 - i + MonitoringConstants.MaxFrameTimes) % MonitoringConstants.MaxFrameTimes;
-                if (index >= 0 && index < MonitoringConstants.MaxFrameTimes)
-                {
-                    totalFrameTime += _frameTimes[index];
-                    actualFrameCount++;
-                }
-            }
-
-            if (actualFrameCount == 0)
-            {
-                return new PerformanceMetrics();
-            }
-
-            // Calculate smoothed values
-            float avgFrameTime = totalFrameTime / actualFrameCount;
-            float smoothedFps = avgFrameTime > 0 ? 1000.0f / avgFrameTime : 0;
-
-            return new PerformanceMetrics
-            {
-                Fps = smoothedFps,
-                FrameTime = avgFrameTime,
-                OnePercentLowFps = CalculateOnePercentLowFps(),
-                FrameTimeCount = _frameTimeCount
-            };
+            Console.WriteLine("PerformanceMonitoringService: DXGI monitoring started");
         }
-
+        
         /// <summary>
-        /// Calculates 1% low FPS using histogram-based approximation.
+        /// Calculates 1% low FPS from the frame time histogram.
         /// </summary>
         private float CalculateOnePercentLowFps()
         {
-            if (_frameTimeCount < MonitoringConstants.MinFrameTimesForLowFps)
+            if (_frameTimeCount < 10)
                 return 0;
 
+            // Build histogram
             Array.Clear(_histogram, 0, _histogram.Length);
             
-            float minFrameTime = float.MaxValue;
-            float maxFrameTime = float.MinValue;
-
-            // Find min and max frame times
             for (int i = 0; i < _frameTimeCount; i++)
             {
                 float frameTime = _frameTimes[i];
-                minFrameTime = Math.Min(minFrameTime, frameTime);
-                maxFrameTime = Math.Max(maxFrameTime, frameTime);
+                int binIndex = Math.Min((int)(frameTime / 2.0f), MonitoringConstants.HistogramSize - 1);
+                _histogram[binIndex]++;
             }
 
-            float range = maxFrameTime - minFrameTime;
-            if (range <= 0)
-                return 0;
-
-            float bucketSize = range / _histogram.Length;
-
-            // Build histogram
-            for (int i = 0; i < _frameTimeCount; i++)
+            // Find 99th percentile
+            int targetIndex = (int)(_frameTimeCount * 0.99f);
+            int accumulated = 0;
+            
+            for (int i = MonitoringConstants.HistogramSize - 1; i >= 0; i--)
             {
-                float ft = _frameTimes[i];
-                int index = (int)((ft - minFrameTime) / bucketSize);
-                if (index >= _histogram.Length)
-                    index = _histogram.Length - 1;
-                _histogram[index]++;
-            }
-
-            // Calculate 1% low frame time from histogram
-            float total = _frameTimeCount;
-            float onePercentCount = total * 0.01f;
-            float cumulative = 0;
-
-            for (int i = _histogram.Length - 1; i >= 0; i--)
-            {
-                cumulative += _histogram[i];
-                if (cumulative >= onePercentCount)
+                accumulated += (int)_histogram[i];
+                if (accumulated >= targetIndex)
                 {
-                    float onePercentFrameTime = minFrameTime + (i + 0.5f) * bucketSize;
-                    return onePercentFrameTime > 0 ? 1000.0f / onePercentFrameTime : 0;
+                    float frameTime99th = i * 2.0f;
+                    return frameTime99th > 0 ? 1000.0f / frameTime99th : 0;
                 }
             }
 
@@ -312,46 +199,24 @@ namespace InfoPanel.FPS.Services
         }
 
         /// <summary>
-        /// Recalculates 1% low FPS and triggers metrics update.
-        /// </summary>
-        private void RecalculateOnePercentLowFps()
-        {
-            if (_frameTimeCount > 0)
-            {
-                var currentFrameTime = _frameTimes[(_frameTimeIndex - 1 + MonitoringConstants.MaxFrameTimes) % MonitoringConstants.MaxFrameTimes];
-                var currentFps = currentFrameTime > 0 ? 1000.0f / currentFrameTime : 0;
-                
-                var metrics = new PerformanceMetrics
-                {
-                    Fps = currentFps,
-                    FrameTime = currentFrameTime,
-                    OnePercentLowFps = CalculateOnePercentLowFps(),
-                    FrameTimeCount = _frameTimeCount
-                };
-
-                MetricsUpdated?.Invoke(metrics);
-            }
-        }
-
-        /// <summary>
-        /// Resets all performance metrics and buffers.
+        /// Resets all metrics and buffered frame times.
         /// </summary>
         private void ResetMetrics()
         {
-            Array.Clear(_frameTimes, 0, _frameTimes.Length);
-            Array.Clear(_histogram, 0, _histogram.Length);
             _frameTimeIndex = 0;
             _frameTimeCount = 0;
             _updateCount = 0;
-            _lastUpdate = DateTime.MinValue;
+            Array.Clear(_frameTimes, 0, _frameTimes.Length);
+            Array.Clear(_histogram, 0, _histogram.Length);
         }
 
         /// <summary>
-        /// Disposes the service and releases resources.
+        /// Disposes resources.
         /// </summary>
         public void Dispose()
         {
             StopMonitoring();
+            _dxgiService?.Dispose();
             _cancellationTokenSource?.Dispose();
         }
     }
