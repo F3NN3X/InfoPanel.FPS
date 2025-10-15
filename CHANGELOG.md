@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## v1.1.6 (October 15, 2025)
+
+- **Thread Safety Improvements**
+  - **Fixed Collection Modification Exception**: Resolved crash caused by concurrent sensor updates from multiple threads
+  - **Lock Synchronization**: Added thread-safe access to all sensor update methods using `_sensorLock`
+  - **Stable Multi-Threading**: Prevents race conditions when `UpdateAsync` and `StopMonitoringAsync` run simultaneously
+  - **Enhanced Reliability**: Eliminates "Collection was modified; enumeration operation may not execute" errors
+
+- **Title Caching Enhancements**
+  - **PID-Based Filtering**: Window titles only cached when monitored process ID matches window process ID
+  - **Process Existence Validation**: Uses RTSS monitored PID to verify game processes are still running
+  - **Alt-Tab Support**: Maintains cached titles when switching between applications
+  - **Persistent Titles**: Cached window titles persist during temporary window validation failures
+
+- **RTSS Integration Improvements**
+  - **Direct FPS Reading**: Reads instantaneous FPS directly from RTSS Frames field (offset 276)
+  - **Accurate Frame Times**: Calculates frame times as `1000.0 / FPS` for pixel-perfect accuracy
+  - **1% Low Calculation**: 100-frame rolling window with outlier filtering (FPS < 10) for reliable stutter detection
+  - **RTSS Hook Detection**: Automatic 60-second retry logic with graceful fallback when RTSS hasn't hooked yet
+
+- **Code Quality & Architecture**
+  - **Removed Hardcoded Game Logic**: Eliminated all game-specific bypasses for universal compatibility
+  - **Service-Based Architecture**: Refactored into specialized services (WindowDetection, DXGIFrameMonitoring, SensorManagement, etc.)
+  - **Clean Codebase**: Removed unused fields, deleted obsolete files, and cleaned up debug logging
+  - **Zero Build Warnings**: Achieved clean compilation with no warnings or errors
+
+- **Gaming Compatibility**
+  - **Universal Game Support**: Works with all games without hardcoded process names or titles
+  - **Anti-Cheat Compatible**: Tested and verified with Battlefield 2042/6, Gray Zone Warfare, No Man's Sky, Deadside
+  - **Fast Launch Handling**: Gracefully handles games launched before RTSS hooks (title appears once hooked)
+  - **Multi-Monitor Support**: Accurate fullscreen detection across different monitor configurations
+
 ## v1.1.4 (October 13, 2025)
 
 - **RTSS Integration for Enhanced Anti-Cheat Compatibility**

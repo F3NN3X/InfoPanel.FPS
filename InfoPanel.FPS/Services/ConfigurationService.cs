@@ -46,9 +46,11 @@ namespace InfoPanel.FPS.Services
 
 
         /// <summary>
-        /// Whether PresentMon monitoring should be used.
+        /// Whether RTSS monitoring should be used (always true in v1.1.6+).
+        /// Legacy property kept for configuration compatibility.
         /// </summary>
-        public bool UsePresentMon => GetBoolValue("FPS_Monitoring", "usePresentMon", true);
+        [Obsolete("RTSS is now the only monitoring method. This property is kept for config compatibility.")]
+        public bool UsePresentMon => true; // Always true, RTSS is the only method
 
         /// <summary>
         /// Update interval in milliseconds.
@@ -117,7 +119,7 @@ namespace InfoPanel.FPS.Services
                 // Log current settings safely
                 try
                 {
-                    Console.WriteLine($"ConfigurationService: usePresentMon={UsePresentMon}");
+                    Console.WriteLine($"ConfigurationService: updateInterval={UpdateInterval}ms");
                 }
                 catch (Exception settingsEx)
                 {
@@ -173,17 +175,17 @@ namespace InfoPanel.FPS.Services
             try
             {
                 var defaultConfig = @"[FPS_Monitoring]
-# Set to true to use PresentMon for FPS monitoring (default)
-# Built-in monitoring, no 3rd party software required
-# May be blocked by some anti-cheat systems
-usePresentMon=true
+# InfoPanel.FPS v1.1.6+ uses RTSS (RivaTuner Statistics Server) exclusively
+# RTSS must be running for FPS monitoring to work
+# Download RTSS: https://www.guru3d.com/files-details/rtss-rivatuner-statistics-server-download.html
+# Or install MSI Afterburner (includes RTSS): https://www.msi.com/Landing/afterburner
 
 [Display]
 # Update interval in milliseconds (1000 = 1 second)
 updateInterval=1000
 
-# Number of frames to use for smoothing calculations
-smoothingFrames=120";
+# Number of frames to use for smoothing calculations (used for 1% low calculation)
+smoothingFrames=100";
 
                 // Create directory if it doesn't exist
                 var directory = Path.GetDirectoryName(_configFilePath);

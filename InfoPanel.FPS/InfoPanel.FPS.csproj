@@ -15,7 +15,7 @@
     <!-- Limit satellite resources to English only -->
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
     <!-- Define the plugin version -->
-    <Version>1.1.5</Version>
+    <Version>1.1.6</Version>
     <!-- Customize output path for Release builds -->
     <OutputPath Condition="'$(Configuration)' == 'Release'">bin\Release\net8.0-windows\InfoPanel.FPS-v$(Version)\InfoPanel.FPS</OutputPath>
     <!-- Prevent appending TargetFramework to OutputPath -->
@@ -94,12 +94,11 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="PresentMonFps" Version="2.0.5" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.2" />
+    <!-- Legacy unused but kept for compatibility - GPU Performance Counter code still exists in DXGIFrameMonitoringService -->
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.5" />
-    <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" />
     <PackageReference Include="System.Management" Version="9.0.5" />
     <PackageReference Include="Vanara.PInvoke.DwmApi" Version="4.0.6" />
+    <PackageReference Include="Vanara.PInvoke.Kernel32" Version="4.0.5" />
     <PackageReference Include="Vanara.PInvoke.User32" Version="4.0.5" />
   </ItemGroup>
 

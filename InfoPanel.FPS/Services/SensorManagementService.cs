@@ -27,6 +27,11 @@ namespace InfoPanel.FPS.Services
         /// during these temporary validation failures.
         /// </summary>
         private string _lastValidWindowTitle = string.Empty;
+        
+        /// <summary>
+        /// Lock object for thread-safe sensor updates to prevent collection modification exceptions.
+        /// </summary>
+        private readonly object _sensorLock = new object();
 
         /// <summary>
         /// Initializes a new instance of the SensorManagementService.
@@ -112,10 +117,12 @@ namespace InfoPanel.FPS.Services
         /// <param name="state">Current monitoring state containing all metrics.</param>
         public void UpdateSensors(MonitoringState state)
         {
-            try
+            lock (_sensorLock)
             {
-                // Update performance sensors
-                if (state.Performance.IsValid && state.IsMonitoring)
+                try
+                {
+                    // Update performance sensors
+                    if (state.Performance.IsValid && state.IsMonitoring)
                 {
                     _fpsSensor.Value = state.Performance.Fps;
                     _currentFrameTimeSensor.Value = state.Performance.FrameTime;
@@ -147,6 +154,14 @@ namespace InfoPanel.FPS.Services
                             _lastValidWindowTitle = state.Window.WindowTitle;
                         }
                     }
+                    else
+                    {
+                        // Debug: Log why caching didn't happen (only when conditions are close)
+                        if (monitoredPid > 0 && state.Window.ProcessId == monitoredPid)
+                        {
+                            Console.WriteLine($"Title NOT cached - MonitoredPID: {monitoredPid}, WindowPID: {state.Window.ProcessId}, Title: '{state.Window.WindowTitle}', IsWhitespace: {string.IsNullOrWhiteSpace(state.Window.WindowTitle)}");
+                        }
+                    }
                     
                     // Use cached title if we have one, otherwise show NoCapture
                     _windowTitleSensor.Value = !string.IsNullOrEmpty(_lastValidWindowTitle) 
@@ -164,10 +179,11 @@ namespace InfoPanel.FPS.Services
                 _resolutionSensor.Value = state.System.Resolution;
                 _refreshRateSensor.Value = state.System.RefreshRate;
                 _gpuNameSensor.Value = state.System.GpuName;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating sensors: {ex}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error updating sensors: {ex}");
+                }
             }
         }
 
@@ -176,27 +192,30 @@ namespace InfoPanel.FPS.Services
         /// </summary>
         public void ResetSensors()
         {
-            try
+            lock (_sensorLock)
             {
-                // Reset performance sensors
-                _fpsSensor.Value = 0;
-                _onePercentLowFpsSensor.Value = 0;
-                _currentFrameTimeSensor.Value = 0;
+                try
+                {
+                    // Reset performance sensors
+                    _fpsSensor.Value = 0;
+                    _onePercentLowFpsSensor.Value = 0;
+                    _currentFrameTimeSensor.Value = 0;
 
-                // Reset information sensors to defaults
-                _windowTitleSensor.Value = SensorConstants.DefaultWindowTitle;
-                _resolutionSensor.Value = SensorConstants.DefaultResolution;
-                _refreshRateSensor.Value = 0;
-                _gpuNameSensor.Value = SensorConstants.DefaultGpuName;
-                
-                // Clear cached window title
-                _lastValidWindowTitle = string.Empty;
+                    // Reset information sensors to defaults
+                    _windowTitleSensor.Value = SensorConstants.DefaultWindowTitle;
+                    _resolutionSensor.Value = SensorConstants.DefaultResolution;
+                    _refreshRateSensor.Value = 0;
+                    _gpuNameSensor.Value = SensorConstants.DefaultGpuName;
+                    
+                    // Clear cached window title
+                    _lastValidWindowTitle = string.Empty;
 
-                Console.WriteLine("All sensors reset to default values");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error resetting sensors: {ex}");
+                    Console.WriteLine("All sensors reset to default values");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error resetting sensors: {ex}");
+                }
             }
         }
 
@@ -206,18 +225,21 @@ namespace InfoPanel.FPS.Services
         /// <param name="metrics">Performance metrics to apply.</param>
         public void UpdatePerformanceSensors(PerformanceMetrics metrics)
         {
-            try
+            lock (_sensorLock)
             {
-                if (metrics.IsValid)
+                try
                 {
-                    _fpsSensor.Value = metrics.Fps;
-                    _currentFrameTimeSensor.Value = metrics.FrameTime;
-                    _onePercentLowFpsSensor.Value = metrics.OnePercentLowFps;
+                    if (metrics.IsValid)
+                    {
+                        _fpsSensor.Value = metrics.Fps;
+                        _currentFrameTimeSensor.Value = metrics.FrameTime;
+                        _onePercentLowFpsSensor.Value = metrics.OnePercentLowFps;
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating performance sensors: {ex}");
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error updating performance sensors: {ex}");
+                }
             }
         }
 
@@ -227,29 +249,32 @@ namespace InfoPanel.FPS.Services
         /// <param name="windowInfo">Window information to apply.</param>
         public void UpdateWindowSensor(WindowInformation windowInfo)
         {
-            try
+            lock (_sensorLock)
             {
-                if (windowInfo.IsValid)
+                try
                 {
-                    var newTitle = !string.IsNullOrWhiteSpace(windowInfo.WindowTitle) 
-                        ? windowInfo.WindowTitle 
-                        : "Untitled";
-                    
-                    // Preserve existing good titles - don't overwrite with generic defaults
-                    if (newTitle != "Untitled" || _windowTitleSensor.Value == SensorConstants.NoCapture || _windowTitleSensor.Value == SensorConstants.DefaultWindowTitle)
+                    if (windowInfo.IsValid)
                     {
-                        _windowTitleSensor.Value = newTitle;
+                        var newTitle = !string.IsNullOrWhiteSpace(windowInfo.WindowTitle) 
+                            ? windowInfo.WindowTitle 
+                            : "Untitled";
+                        
+                        // Preserve existing good titles - don't overwrite with generic defaults
+                        if (newTitle != "Untitled" || _windowTitleSensor.Value == SensorConstants.NoCapture || _windowTitleSensor.Value == SensorConstants.DefaultWindowTitle)
+                        {
+                            _windowTitleSensor.Value = newTitle;
+                        }
+                    }
+                    else
+                    {
+                        // Reset to NoCapture when window becomes invalid
+                        _windowTitleSensor.Value = SensorConstants.NoCapture;
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    // Reset to NoCapture when window becomes invalid
-                    _windowTitleSensor.Value = SensorConstants.NoCapture;
+                    Console.WriteLine($"Error updating window sensor: {ex}");
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating window sensor: {ex}");
             }
         }
 
@@ -259,15 +284,18 @@ namespace InfoPanel.FPS.Services
         /// <param name="systemInfo">System information to apply.</param>
         public void UpdateSystemSensors(SystemInformation systemInfo)
         {
-            try
+            lock (_sensorLock)
             {
-                _resolutionSensor.Value = systemInfo.Resolution;
-                _refreshRateSensor.Value = systemInfo.RefreshRate;
-                _gpuNameSensor.Value = systemInfo.GpuName;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating system sensors: {ex}");
+                try
+                {
+                    _resolutionSensor.Value = systemInfo.Resolution;
+                    _refreshRateSensor.Value = systemInfo.RefreshRate;
+                    _gpuNameSensor.Value = systemInfo.GpuName;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error updating system sensors: {ex}");
+                }
             }
         }
 

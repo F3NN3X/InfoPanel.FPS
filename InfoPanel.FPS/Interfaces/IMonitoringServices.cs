@@ -3,7 +3,7 @@ using InfoPanel.FPS.Models;
 namespace InfoPanel.FPS.Interfaces
 {
     /// <summary>
-    /// Service responsible for monitoring application performance using PresentMon.
+    /// Service responsible for monitoring application performance using RTSS.
     /// </summary>
     public interface IPerformanceMonitoringService : IDisposable
     {

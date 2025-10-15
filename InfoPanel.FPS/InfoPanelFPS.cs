@@ -6,16 +6,17 @@ using InfoPanel.Plugins;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.1.5
+ * Version: 1.1.6
  * Author: F3NN3X
- * Description: An optimized InfoPanel plugin using GPU Performance Counters to monitor game performance. Tracks FPS, frame time, 1% low FPS over time, window title, display resolution, refresh rate, and GPU name in the UI. Updates every 2 seconds with event-driven detection and automatic game discovery. Features superior anti-cheat compatibility using external monitoring.
+ * Description: An optimized InfoPanel plugin using RTSS shared memory to monitor game performance. Reads FPS directly from RivaTuner Statistics Server for pixel-perfect accuracy and anti-cheat compatibility. Tracks FPS, frame time, 1% low FPS over time, window title, display resolution, refresh rate, and GPU name in the UI. Features thread-safe sensor updates and universal game support without hardcoded logic.
  * Changelog (Recent):
- *   - v1.1.5 (October 13, 2025): Migrated to GPU Performance Counter-based monitoring.
- *     - Replaced RTSS integration with universal GPU Performance Counter monitoring.
- *     - Added GameFPSService for automatic game detection and FPS monitoring.
- *     - Superior anti-cheat compatibility - works with Battlefield 6, Valorant, and other protected games.
- *     - Enhanced monitoring resilience with automatic fallback detection and seamless transitions.
- *     - Improved frame smoothing with rolling averages for stable FPS display updates.
+ *   - v1.1.6 (October 15, 2025): Thread safety fixes and RTSS improvements.
+ *     - Fixed collection modification crash with thread-safe sensor updates using lock synchronization.
+ *     - Direct FPS reading from RTSS Frames field (offset 276) for pixel-perfect accuracy.
+ *     - Removed all hardcoded game logic for universal compatibility.
+ *     - Enhanced title caching with PID-based filtering and alt-tab support.
+ *     - Service-based architecture with specialized monitoring services.
+ *     - Clean codebase with zero build warnings.
  *   - v1.1.0 (September 19, 2025): Architectural refactoring and reliability improvements.
  *     - Major refactoring using C# best practices with service-based architecture.
  *     - Split monolithic code into dedicated services: PerformanceMonitoringService, WindowDetectionService, SystemInformationService, SensorManagementService.
@@ -60,7 +61,7 @@ namespace InfoPanel.FPS
             : base(
                 "fps-plugin",
                 "InfoPanel.FPS",
-                "Simple FPS plugin showing FPS, frame time, 1% low FPS, window title, resolution, and refresh rate using PresentMonFPS"
+                "Simple FPS plugin showing FPS, frame time, 1% low FPS, window title, resolution, and refresh rate using RTSS"
             )
         {
             // Critical: Add early logging for debugging
