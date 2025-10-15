@@ -47,6 +47,13 @@ namespace InfoPanel.FPS.Services
             if (!_isMonitoring || fps <= 0)
                 return;
 
+            // Filter out startup/initialization artifacts (FPS < 10 is unrealistic for active gameplay)
+            if (fps < 10)
+            {
+                Console.WriteLine($"PerformanceMonitoringService.OnFpsUpdated: Ignoring outlier FPS={fps:F1} (likely initialization artifact)");
+                return;
+            }
+
             // Add frame time to circular buffer
             _frameTimes[_frameTimeIndex] = (float)frameTimeMs;
             _frameTimeIndex = (_frameTimeIndex + 1) % MonitoringConstants.MaxFrameTimes;
