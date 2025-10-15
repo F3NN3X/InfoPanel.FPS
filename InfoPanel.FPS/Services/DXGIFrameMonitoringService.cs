@@ -8,11 +8,6 @@ namespace InfoPanel.FPS.Services
     /// </summary>
     public class DXGIFrameMonitoringService : IDisposable
     {
-        private readonly int _frameHistorySize = 1000;
-        private readonly float[] _frameTimes = new float[1000];
-        private int _frameTimeIndex;
-        private int _frameTimeCount;
-
         private double _currentFps;
         private double _averageFrameTime;
         private uint _monitoredProcessId;

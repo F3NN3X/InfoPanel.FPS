@@ -136,9 +136,6 @@ namespace InfoPanel.FPS.Services
                     // Get the PID that RTSS is actually monitoring (providing FPS data)
                     uint monitoredPid = state.Performance.MonitoredProcessId;
                     
-                    // DETAILED DEBUG: Show all values for diagnosis
-                    Console.WriteLine($"[TITLE CACHE DEBUG] MonitoredPID: {monitoredPid}, WindowPID: {state.Window.ProcessId}, WindowTitle: '{state.Window.WindowTitle}', CachedTitle: '{_lastValidWindowTitle}'");
-                    
                     // Update cached title ONLY if window PID matches RTSS monitored PID
                     if (monitoredPid > 0 && 
                         state.Window.ProcessId == monitoredPid && 
@@ -146,31 +143,15 @@ namespace InfoPanel.FPS.Services
                     {
                         if (_lastValidWindowTitle != state.Window.WindowTitle)
                         {
-                            Console.WriteLine($"Window title cached for RTSS PID {monitoredPid}: '{state.Window.WindowTitle}' (was '{_lastValidWindowTitle}')");
+                            Console.WriteLine($"Window title cached: '{state.Window.WindowTitle}' (PID: {monitoredPid})");
                             _lastValidWindowTitle = state.Window.WindowTitle;
                         }
-                    }
-                    else
-                    {
-                        // Log why caching failed
-                        if (monitoredPid == 0)
-                            Console.WriteLine("[TITLE CACHE] Not caching: MonitoredPID is 0 (RTSS not hooked yet)");
-                        else if (state.Window.ProcessId != monitoredPid)
-                            Console.WriteLine($"[TITLE CACHE] Not caching: Window PID {state.Window.ProcessId} != Monitored PID {monitoredPid}");
-                        else if (string.IsNullOrWhiteSpace(state.Window.WindowTitle))
-                            Console.WriteLine($"[TITLE CACHE] Not caching: Window title is empty/whitespace");
                     }
                     
                     // Use cached title if we have one, otherwise show NoCapture
                     _windowTitleSensor.Value = !string.IsNullOrEmpty(_lastValidWindowTitle) 
                         ? _lastValidWindowTitle 
                         : SensorConstants.NoCapture;
-                    
-                    // Debug log for mismatched PIDs
-                    if (monitoredPid > 0 && state.Window.ProcessId > 0 && state.Window.ProcessId != monitoredPid)
-                    {
-                        Console.WriteLine($"PID mismatch: Window PID {state.Window.ProcessId} ({state.Window.WindowTitle}) != RTSS monitored PID {monitoredPid}, ignoring window title");
-                    }
                 }
                 else
                 {
@@ -183,13 +164,6 @@ namespace InfoPanel.FPS.Services
                 _resolutionSensor.Value = state.System.Resolution;
                 _refreshRateSensor.Value = state.System.RefreshRate;
                 _gpuNameSensor.Value = state.System.GpuName;
-
-                Console.WriteLine($"Sensors updated - FPS: {_fpsSensor.Value}, " +
-                                $"Frame Time: {_currentFrameTimeSensor.Value}ms, " +
-                                $"1% Low: {_onePercentLowFpsSensor.Value}, " +
-                                $"Title: {_windowTitleSensor.Value}, " +
-                                $"Resolution: {_resolutionSensor.Value}, " +
-                                $"Refresh: {_refreshRateSensor.Value}Hz");
             }
             catch (Exception ex)
             {
@@ -239,10 +213,6 @@ namespace InfoPanel.FPS.Services
                     _fpsSensor.Value = metrics.Fps;
                     _currentFrameTimeSensor.Value = metrics.FrameTime;
                     _onePercentLowFpsSensor.Value = metrics.OnePercentLowFps;
-                    
-                    Console.WriteLine($"Performance sensors updated - FPS: {metrics.Fps:F1}, " +
-                                    $"Frame Time: {metrics.FrameTime:F2}ms, " +
-                                    $"1% Low: {metrics.OnePercentLowFps:F1}");
                 }
             }
             catch (Exception ex)
@@ -269,18 +239,12 @@ namespace InfoPanel.FPS.Services
                     if (newTitle != "Untitled" || _windowTitleSensor.Value == SensorConstants.NoCapture || _windowTitleSensor.Value == SensorConstants.DefaultWindowTitle)
                     {
                         _windowTitleSensor.Value = newTitle;
-                        Console.WriteLine($"Window sensor updated - Title: {_windowTitleSensor.Value}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Window sensor preserved existing title - keeping: {_windowTitleSensor.Value}");
                     }
                 }
                 else
                 {
                     // Reset to NoCapture when window becomes invalid
                     _windowTitleSensor.Value = SensorConstants.NoCapture;
-                    Console.WriteLine($"Window sensor reset - Title: {_windowTitleSensor.Value}");
                 }
             }
             catch (Exception ex)
@@ -300,9 +264,6 @@ namespace InfoPanel.FPS.Services
                 _resolutionSensor.Value = systemInfo.Resolution;
                 _refreshRateSensor.Value = systemInfo.RefreshRate;
                 _gpuNameSensor.Value = systemInfo.GpuName;
-                
-                Console.WriteLine($"System sensors updated - Resolution: {systemInfo.Resolution}, " +
-                                $"Refresh: {systemInfo.RefreshRate}Hz, GPU: {systemInfo.GpuName}");
             }
             catch (Exception ex)
             {
