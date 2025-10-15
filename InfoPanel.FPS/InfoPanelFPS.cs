@@ -186,10 +186,17 @@ namespace InfoPanel.FPS
                     }
                 }
                 
+                // Update current window information if we have a valid window
+                if (pid != 0 && currentWindow != null)
+                {
+                    _currentState.Window = currentWindow;
+                }
+                
                 // If we found a fullscreen app but aren't monitoring it, start monitoring
                 if (pid != 0 && !_performanceService.IsMonitoring)
                 {
                     Console.WriteLine($"UpdateAsync detected new fullscreen app (PID: {pid}); starting DXGI monitoring");
+                    _currentState.IsMonitoring = true;
                     await StartMonitoringAsync(pid).ConfigureAwait(false);
                 }
                 // If PID changed from what we're monitoring, switch to new process
@@ -197,6 +204,7 @@ namespace InfoPanel.FPS
                 {
                     Console.WriteLine($"UpdateAsync detected PID change: monitoring {_currentState.Window.ProcessId} but found {pid}; switching monitoring");
                     await StopMonitoringAsync().ConfigureAwait(false);
+                    _currentState.IsMonitoring = true;
                     await StartMonitoringAsync(pid).ConfigureAwait(false);
                 }
                 // If no fullscreen app detected but we're still monitoring, stop
@@ -436,18 +444,11 @@ namespace InfoPanel.FPS
         {
             try
             {
-                if (_performanceService.IsMonitoring)
-                {
-                    Console.WriteLine($"Performance service already monitoring, stopping first");
-                    _performanceService.StopMonitoring();
-                }
-
+                // Performance service has its own guard to prevent duplicate starts
+                // Don't stop/reset here as it clears the frame time buffer needed for 1% low calculation
                 Console.WriteLine($"StartMonitoringAsync: Starting monitoring for process ID: {processId}");
 
-                // Reset performance metrics like the old version
-                _currentState.Performance = new PerformanceMetrics();
-
-                // Start performance monitoring
+                // Start performance monitoring (service will skip if already monitoring same PID)
                 var cancellationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
                 
                 Console.WriteLine($"StartMonitoringAsync: Calling _performanceService.StartMonitoringAsync for PID: {processId}");

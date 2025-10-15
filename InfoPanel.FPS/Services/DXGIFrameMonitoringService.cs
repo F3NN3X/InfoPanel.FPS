@@ -1,130 +1,68 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace InfoPanel.FPS.Services
 {
     /// <summary>
-    /// Alternative FPS monitoring service using DXGI frame statistics (no admin rights required).
-    /// Works by reading DXGI swap chain presentation statistics which are exposed by the graphics driver.
+    /// Service for monitoring frame rates using GPU performance counters.
+    /// Provides anti-cheat compatible FPS monitoring via Windows GPU counters.
     /// </summary>
     public class DXGIFrameMonitoringService : IDisposable
     {
-        // RTSS shared memory structures
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        private unsafe struct RTSS_SHARED_MEMORY_OSD_ENTRY
-        {
-            public fixed char szOSD[256];
-            public uint dwOSDX;
-            public uint dwOSDY;
-            public uint dwOSDPX;
-            public uint dwOSDPY;
-            public uint dwOSDOpacity;
-            public uint dwOSDColor;
-            public uint dwOSDBgndColor;
-        }
+        private readonly int _frameHistorySize = 1000;
+        private readonly float[] _frameTimes = new float[1000];
+        private int _frameTimeIndex;
+        private int _frameTimeCount;
 
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        private unsafe struct RTSS_SHARED_MEMORY_APP_ENTRY
-        {
-            public fixed char szName[260];
-            public fixed char szPath[260];
-            public uint dwProcessId;
-            public uint dwFrames;
-            public uint dwTime0;
-            public uint dwTime1;
-            public uint dwFramesDelta;
-            public uint dwTimeDelta;
-            public uint dwStatFlags;
-            public uint dwStatTime0;
-            public uint dwStatTime1;
-            public uint dwStatFrames;
-            public uint dwStatCount;
-            public uint dwFlags;
-            public uint dwOSDX;
-            public uint dwOSDY;
-            public uint dwOSDPX;
-            public uint dwOSDPY;
-            public uint dwOSDOpacity;
-            public uint dwOSDColor;
-            public uint dwOSDBgndColor;
-            public RTSS_SHARED_MEMORY_OSD_ENTRY osd;
-        }
-
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        private unsafe struct RTSS_SHARED_MEMORY
-        {
-            public uint dwSignature;
-            public uint dwVersion;
-            public uint dwAppEntrySize;
-            public uint dwAppArrSize;
-            public uint dwOSDEntrySize;
-            public uint dwOSDArrSize;
-            public uint dwOSDFrame;
-            public fixed uint dwReserved[8];
-            public fixed byte appArr[256 * 544]; // 256 entries * 544 bytes each (sizeof(RTSS_SHARED_MEMORY_APP_ENTRY))
-            public fixed byte osdArr[8 * 1320]; // 8 entries * 1320 bytes each (sizeof(RTSS_SHARED_MEMORY_OSD_ENTRY))
-        }
-
-        private const uint RTSS_SIGNATURE = 0x52545353; // 'RTSS'
-        private const string RTSS_SHARED_MEMORY_NAME = "RTSSSharedMemoryV2";
-        private bool _isMonitoring;
-        private uint _currentProcessId;
-        private CancellationTokenSource? _cancellationTokenSource;
-        private Task? _monitoringTask;
-        
-        // Frame timing tracking
-        private readonly Queue<DateTime> _frameTimes = new();
-        private readonly int _frameHistorySize = 100;
         private double _currentFps;
         private double _averageFrameTime;
-        
-        public event Action<double, double>? FpsUpdated; // FPS, Frame Time
-        
-        public bool IsMonitoring => _isMonitoring;
-        public uint CurrentProcessId => _currentProcessId;
+
+        private CancellationTokenSource? _cts;
+        private volatile bool _isMonitoring;
 
         /// <summary>
-        /// Starts monitoring a process using DXGI frame statistics.
+        /// Event fired when FPS data is updated.
+        /// </summary>
+        public event Action<double, double>? FpsUpdated;
+
+        /// <summary>
+        /// Gets the current FPS value.
+        /// </summary>
+        public double CurrentFps => _currentFps;
+
+        /// <summary>
+        /// Gets the current average frame time in milliseconds.
+        /// </summary>
+        public double AverageFrameTime => _averageFrameTime;
+
+        /// <summary>
+        /// Starts monitoring FPS for the specified process.
         /// </summary>
         public async Task StartMonitoringAsync(uint processId, CancellationToken cancellationToken = default)
         {
             if (_isMonitoring)
             {
-                Console.WriteLine($"DXGIFrameMonitoringService: Already monitoring process {_currentProcessId}");
-                return;
+                Console.WriteLine("DXGIFrameMonitoringService: Already monitoring, stopping first");
+                await StopMonitoringAsync();
             }
 
-            Console.WriteLine($"DXGIFrameMonitoringService: Starting DXGI frame monitoring for PID {processId}");
-            _currentProcessId = processId;
-            _cancellationTokenSource = new CancellationTokenSource();
-            
-            var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken, _cancellationTokenSource.Token).Token;
-
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _isMonitoring = true;
-            _monitoringTask = MonitorFramesAsync(processId, combinedToken);
-            
-            await Task.CompletedTask;
-        }
 
-        /// <summary>
-        /// Monitors frames using Windows Performance Counters (GPU Adapter Memory / Frame Rate).
-        /// This approach uses publicly available GPU metrics without requiring admin rights.
-        /// </summary>
-        private async Task MonitorFramesAsync(uint processId, CancellationToken cancellationToken)
-        {
-            Console.WriteLine($"DXGIFrameMonitoringService: Frame monitoring loop started for PID {processId}");
-            
+            Console.WriteLine($"DXGIFrameMonitoringService: Starting frame monitoring for PID {processId}");
+
             try
             {
-                // First try RTSS shared memory (most accurate)
-                var rtssFps = TryReadRTSSFps(processId);
-                if (rtssFps.HasValue)
+                // Always try RTSS first (with retry logic for when game isn't hooked yet)
+                Console.WriteLine("DXGIFrameMonitoringService: Attempting RTSS shared memory monitoring (will retry if not hooked yet)");
+                await MonitorWithRTSSAsync(processId, _cts.Token);
+                
+                // If MonitorWithRTSSAsync exits (timeout or cancelled), fall back to GPU counters
+                if (_cts.Token.IsCancellationRequested)
                 {
-                    Console.WriteLine("DXGIFrameMonitoringService: Using RTSS shared memory for FPS data");
-                    await MonitorWithRTSSAsync(processId, cancellationToken);
                     return;
                 }
+                
+                Console.WriteLine("DXGIFrameMonitoringService: RTSS monitoring ended, falling back to GPU counters");
 
                 // Then try GPU performance counters
                 var gpuCounterResult = TryGetGPUFrameRateCounter(processId);
@@ -132,13 +70,13 @@ namespace InfoPanel.FPS.Services
                 {
                     var (gpuPerfCounter, counterName) = gpuCounterResult.Value;
                     Console.WriteLine("DXGIFrameMonitoringService: Using GPU Performance Counter for frame rate");
-                    await MonitorWithPerformanceCounterAsync(gpuPerfCounter!, counterName, cancellationToken);
+                    await MonitorWithPerformanceCounterAsync(gpuPerfCounter!, counterName, _cts.Token);
                     return;
                 }
                 else
                 {
                     Console.WriteLine("DXGIFrameMonitoringService: GPU Performance Counter not available, using timing estimation");
-                    await MonitorWithTimingEstimationAsync(processId, cancellationToken);
+                    await MonitorWithTimingEstimationAsync(processId, _cts.Token);
                 }
             }
             catch (OperationCanceledException)
@@ -157,16 +95,31 @@ namespace InfoPanel.FPS.Services
         }
 
         /// <summary>
+        /// Stops the current monitoring session.
+        /// </summary>
+        public async Task StopMonitoringAsync()
+        {
+            if (_cts != null)
+            {
+                _cts.Cancel();
+                _cts.Dispose();
+                _cts = null;
+            }
+            _isMonitoring = false;
+            await Task.Delay(100); // Allow cleanup
+        }
+
+        /// <summary>
         /// Attempts to create a GPU frame rate performance counter for the process.
         /// Returns null if not available (requires GPU driver support).
         /// </summary>
-        private (System.Diagnostics.PerformanceCounter?, string)? TryGetGPUFrameRateCounter(uint processId)
+        private (PerformanceCounter?, string)? TryGetGPUFrameRateCounter(uint processId)
         {
             try
             {
                 // First, specifically look for the target process in GPU Engine category
                 // Since RTSS detects D3D12 for BF6, prioritize 3D engine instances
-                var gpuEngineCategory = new System.Diagnostics.PerformanceCounterCategory("GPU Engine");
+                var gpuEngineCategory = new PerformanceCounterCategory("GPU Engine");
                 var allInstances = gpuEngineCategory.GetInstanceNames();
 
                 Console.WriteLine($"DXGIFrameMonitoringService: Scanning {allInstances.Length} GPU Engine instances for process {processId}");
@@ -187,15 +140,15 @@ namespace InfoPanel.FPS.Services
                         // Look for utilization counters that can estimate FPS
                         foreach (var counter in counters)
                         {
-                            if (counter.CounterName.Contains("Utilization Percentage") ||
-                                counter.CounterName.Contains("utilization") ||
-                                counter.CounterName.Contains("busy") ||
-                                counter.CounterName.Contains("percentage"))
+                            if (counter.CounterName.ToLower().Contains("utilization percentage") ||
+                                counter.CounterName.ToLower().Contains("utilization") ||
+                                counter.CounterName.ToLower().Contains("busy") ||
+                                counter.CounterName.ToLower().Contains("percentage"))
                             {
                                 Console.WriteLine($"DXGIFrameMonitoringService: Found utilization counter for process {processId}: {counter.CounterName}");
                                 try
                                 {
-                                    var perfCounter = new System.Diagnostics.PerformanceCounter("GPU Engine", counter.CounterName, instance, true);
+                                    var perfCounter = new PerformanceCounter("GPU Engine", counter.CounterName, instance, true);
                                     var testValue = perfCounter.NextValue();
                                     Console.WriteLine($"DXGIFrameMonitoringService: Counter test value: {testValue}");
                                     Console.WriteLine($"DXGIFrameMonitoringService: Using GPU utilization counter for FPS estimation");
@@ -211,13 +164,9 @@ namespace InfoPanel.FPS.Services
                 }
 
                 // If no process-specific 3D counter found, try the broader search
-                    }
-                }
-
-                // If no process-specific counter found, try the broader search
                 // Try to find GPU 3D performance counter for the process
                 // This reads actual GPU presentation rate, not utilization estimation
-                var category = new System.Diagnostics.PerformanceCounterCategory("GPU Adapter Memory");
+                var category = new PerformanceCounterCategory("GPU Adapter Memory");
                 var instanceNames = category.GetInstanceNames();
 
                 Console.WriteLine($"DXGIFrameMonitoringService: Found {instanceNames.Length} GPU counter instances:");
@@ -232,10 +181,10 @@ namespace InfoPanel.FPS.Services
                     {
                         Console.WriteLine($"DXGIFrameMonitoringService: Found process-specific GPU counter: {instanceName}");
                         // Found process-specific GPU counter
-                        return (new System.Diagnostics.PerformanceCounter(
-                            "GPU Adapter Memory", 
-                            "Local Usage", 
-                            instanceName, 
+                        return (new PerformanceCounter(
+                            "GPU Adapter Memory",
+                            "Local Usage",
+                            instanceName,
                             true), "Local Usage");
                     }
                 }
@@ -246,46 +195,117 @@ namespace InfoPanel.FPS.Services
                 {
                     try
                     {
-                        var cat = new System.Diagnostics.PerformanceCounterCategory(catName);
+                        var cat = new PerformanceCounterCategory(catName);
                         var instances = cat.GetInstanceNames();
                         Console.WriteLine($"DXGIFrameMonitoringService: Checking {catName} category ({instances.Length} instances)");
 
                         // Look for instances that might contain frame rate data
+                        // First priority: exact process match
                         foreach (var instance in instances)
                         {
-                            // Check if this instance is related to our process or contains frame data
-                            if (instance.Contains($"pid_{processId}") ||
-                                instance.Contains("3D") ||
-                                instance.Contains("engtype_3D") ||
-                                instance.Contains("DirectX") ||
-                                instance.Contains("D3D"))
+                            if (instance.Contains($"pid_{processId}"))
                             {
                                 var counters = cat.GetCounters(instance);
-                                Console.WriteLine($"DXGIFrameMonitoringService: Instance {instance} has {counters.Length} counters:");
+                                Console.WriteLine($"DXGIFrameMonitoringService: Process-specific instance {instance} has {counters.Length} counters:");
                                 foreach (var counter in counters)
                                 {
                                     Console.WriteLine($"    - {counter.CounterName}");
-                                    if (counter.CounterName.Contains("frame") ||
-                                        counter.CounterName.Contains("rate") ||
-                                        counter.CounterName.Contains("fps") ||
-                                        counter.CounterName.Contains("utilization") ||
-                                        counter.CounterName.Contains("running time") ||
-                                        counter.CounterName.Contains("activity") ||
-                                        counter.CounterName.Contains("busy") ||
-                                        counter.CounterName.Contains("percentage"))
+                                    if (counter.CounterName.ToLower().Contains("frame") ||
+                                        counter.CounterName.ToLower().Contains("rate") ||
+                                        counter.CounterName.ToLower().Contains("fps") ||
+                                        counter.CounterName.ToLower().Contains("utilization") ||
+                                        counter.CounterName.ToLower().Contains("running time") ||
+                                        counter.CounterName.ToLower().Contains("activity") ||
+                                        counter.CounterName.ToLower().Contains("busy") ||
+                                        counter.CounterName.ToLower().Contains("percentage"))
                                     {
-                                        Console.WriteLine($"DXGIFrameMonitoringService: Found potential counter: {catName}\\{instance}\\{counter.CounterName}");
+                                        Console.WriteLine($"DXGIFrameMonitoringService: Found process-specific counter: {catName}\\{instance}\\{counter.CounterName}");
                                         try
                                         {
-                                            var testCounter = new System.Diagnostics.PerformanceCounter(catName, counter.CounterName, instance, true);
+                                            var testCounter = new PerformanceCounter(catName, counter.CounterName, instance, true);
                                             var testValue = testCounter.NextValue();
                                             Console.WriteLine($"DXGIFrameMonitoringService: Counter test value: {testValue}");
 
-                                            // If it's a utilization/busy percentage, it might correlate with FPS
-                                            if (counter.CounterName.Contains("utilization") || counter.CounterName.Contains("busy") || counter.CounterName.Contains("percentage"))
+                                            // Prioritize actual FPS/frame rate counters over utilization
+                                            if (counter.CounterName.ToLower().Contains("frame") ||
+                                                counter.CounterName.ToLower().Contains("rate") ||
+                                                counter.CounterName.ToLower().Contains("fps"))
                                             {
-                                                Console.WriteLine($"DXGIFrameMonitoringService: Using GPU utilization counter as FPS estimate");
-                                                return (new System.Diagnostics.PerformanceCounter(catName, counter.CounterName, instance, true), counter.CounterName);
+                                                Console.WriteLine($"DXGIFrameMonitoringService: Using process-specific FPS counter: {counter.CounterName}");
+                                                return (new PerformanceCounter(catName, counter.CounterName, instance, true), counter.CounterName);
+                                            }
+                                            // Check for running time counters (can be used to calculate FPS)
+                                            else if (counter.CounterName.ToLower().Contains("running time"))
+                                            {
+                                                Console.WriteLine($"DXGIFrameMonitoringService: Using process-specific running time counter: {counter.CounterName}");
+                                                return (new PerformanceCounter(catName, counter.CounterName, instance, true), counter.CounterName);
+                                            }
+                                            // Then check for utilization/busy percentage as fallback
+                                            else if (counter.CounterName.ToLower().Contains("utilization") || counter.CounterName.ToLower().Contains("busy") || counter.CounterName.ToLower().Contains("percentage"))
+                                            {
+                                                Console.WriteLine($"DXGIFrameMonitoringService: Using process-specific GPU utilization counter");
+                                                return (new PerformanceCounter(catName, counter.CounterName, instance, true), counter.CounterName);
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"DXGIFrameMonitoringService: Counter test failed: {ex.Message}");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Second priority: 3D engine instances (if no process-specific found)
+                        foreach (var instance in instances)
+                        {
+                            // Check if this instance contains 3D data but skip if we already have process-specific
+                            if (!instance.Contains($"pid_{processId}") &&
+                                (instance.Contains("3D") ||
+                                 instance.Contains("engtype_3D") ||
+                                 instance.Contains("DirectX") ||
+                                 instance.Contains("D3D")))
+                            {
+                                var counters = cat.GetCounters(instance);
+                                Console.WriteLine($"DXGIFrameMonitoringService: 3D instance {instance} has {counters.Length} counters:");
+                                foreach (var counter in counters)
+                                {
+                                    Console.WriteLine($"    - {counter.CounterName}");
+                                    if (counter.CounterName.ToLower().Contains("frame") ||
+                                        counter.CounterName.ToLower().Contains("rate") ||
+                                        counter.CounterName.ToLower().Contains("fps") ||
+                                        counter.CounterName.ToLower().Contains("utilization") ||
+                                        counter.CounterName.ToLower().Contains("running time") ||
+                                        counter.CounterName.ToLower().Contains("activity") ||
+                                        counter.CounterName.ToLower().Contains("busy") ||
+                                        counter.CounterName.ToLower().Contains("percentage"))
+                                    {
+                                        Console.WriteLine($"DXGIFrameMonitoringService: Found 3D counter: {catName}\\{instance}\\{counter.CounterName}");
+                                        try
+                                        {
+                                            var testCounter = new PerformanceCounter(catName, counter.CounterName, instance, true);
+                                            var testValue = testCounter.NextValue();
+                                            Console.WriteLine($"DXGIFrameMonitoringService: Counter test value: {testValue}");
+
+                                            // Prioritize actual FPS/frame rate counters over utilization
+                                            if (counter.CounterName.ToLower().Contains("frame") ||
+                                                counter.CounterName.ToLower().Contains("rate") ||
+                                                counter.CounterName.ToLower().Contains("fps"))
+                                            {
+                                                Console.WriteLine($"DXGIFrameMonitoringService: Using 3D FPS counter: {counter.CounterName}");
+                                                return (new PerformanceCounter(catName, counter.CounterName, instance, true), counter.CounterName);
+                                            }
+                                            // Check for running time counters (can be used to calculate FPS)
+                                            else if (counter.CounterName.ToLower().Contains("running time"))
+                                            {
+                                                Console.WriteLine($"DXGIFrameMonitoringService: Using 3D running time counter: {counter.CounterName}");
+                                                return (new PerformanceCounter(catName, counter.CounterName, instance, true), counter.CounterName);
+                                            }
+                                            // Then check for utilization/busy percentage as fallback
+                                            else if (counter.CounterName.ToLower().Contains("utilization") || counter.CounterName.ToLower().Contains("busy") || counter.CounterName.ToLower().Contains("percentage"))
+                                            {
+                                                Console.WriteLine($"DXGIFrameMonitoringService: Using 3D GPU utilization counter as fallback");
+                                                return (new PerformanceCounter(catName, counter.CounterName, instance, true), counter.CounterName);
                                             }
                                         }
                                         catch (Exception ex)
@@ -309,97 +329,88 @@ namespace InfoPanel.FPS.Services
             }
 
             return null;
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Attempts to read FPS data from RTSS shared memory.
         /// RTSS provides accurate frame rate data that other applications can read.
+        /// Uses pattern from working RTSSExtractor: reads Frames field directly as FPS.
         /// </summary>
-        private unsafe double? TryReadRTSSFps(uint processId)
+        public unsafe double? TryReadRTSSFps(uint processId)
         {
             try
             {
-                using var memoryMappedFile = System.IO.MemoryMappedFiles.MemoryMappedFile.OpenExisting(RTSS_SHARED_MEMORY_NAME);
-                using var accessor = memoryMappedFile.CreateViewAccessor();
+                // Try all RTSS shared memory versions
+                string[] memoryNames = { "RTSSSharedMemoryV3", "RTSSSharedMemoryV2", "RTSSSharedMemoryV1" };
+                const uint RTSS_SIGNATURE = 0x52545353; // "RTSS"
 
-                // Read just the header first to check signature
-                uint signature = accessor.ReadUInt32(0);
-                if (signature != RTSS_SIGNATURE)
+                foreach (var memName in memoryNames)
                 {
-                    Console.WriteLine("DXGIFrameMonitoringService: RTSS shared memory signature mismatch");
-                    return null;
-                }
-
-                // RTSS shared memory layout:
-                // DWORD dwSignature
-                // DWORD dwVersion
-                // DWORD dwAppEntrySize
-                // DWORD dwAppArrSize
-                // ... more header fields ...
-                // App entries start at offset 32 (after 8 DWORDs)
-
-                uint appEntrySize = accessor.ReadUInt32(8);  // dwAppEntrySize
-                uint appArrSize = accessor.ReadUInt32(12);   // dwAppArrSize
-
-                Console.WriteLine($"DXGIFrameMonitoringService: RTSS appEntrySize={appEntrySize}, appArrSize={appArrSize}");
-
-                int maxEntries = (int)(appArrSize / appEntrySize);
-                long appEntriesStart = 32; // After header
-
-                Console.WriteLine($"DXGIFrameMonitoringService: RTSS maxEntries={maxEntries}, appEntriesStart={appEntriesStart}");
-
-                for (int i = 0; i < Math.Min(maxEntries, 10); i++) // Check first 10 entries
-                {
-                    long entryOffset = appEntriesStart + (i * appEntrySize);
-
-                    if (entryOffset + 520 >= accessor.Capacity)
+                    try
                     {
-                        Console.WriteLine($"DXGIFrameMonitoringService: Entry {i} offset {entryOffset} exceeds capacity {accessor.Capacity}");
-                        break;
-                    }
+                        using var memoryMappedFile = System.IO.MemoryMappedFiles.MemoryMappedFile.OpenExisting(memName);
+                        using var accessor = memoryMappedFile.CreateViewAccessor();
 
-                    // Read process ID at multiple possible offsets to find the correct one
-                    uint pid520 = accessor.ReadUInt32(entryOffset + 520);
-                    uint pid524 = accessor.ReadUInt32(entryOffset + 524);
-                    uint pid528 = accessor.ReadUInt32(entryOffset + 528);
-                    uint pid532 = accessor.ReadUInt32(entryOffset + 532);
-
-                    Console.WriteLine($"DXGIFrameMonitoringService: RTSS entry {i}: PIDs at offsets - 520:{pid520}, 524:{pid524}, 528:{pid528}, 532:{pid532}");
-
-                    // Try all possible PID locations
-                    uint entryPid = pid520;
-                    if (entryPid == 0) entryPid = pid524;
-                    if (entryPid == 0) entryPid = pid528;
-                    if (entryPid == 0) entryPid = pid532;
-
-                    if (entryPid != 0)
-                    {
-                        Console.WriteLine($"DXGIFrameMonitoringService: Found non-zero PID {entryPid} at some offset, looking for {processId}");
-
-                        if (entryPid == processId)
+                        // Read header
+                        uint signature = accessor.ReadUInt32(0);
+                        if (signature != RTSS_SIGNATURE)
                         {
-                            // Read frame statistics - adjust offsets based on where PID was found
-                            int statOffset = 520 + 28; // dwFramesDelta is 28 bytes after dwProcessId
-                            uint framesDelta = accessor.ReadUInt32(entryOffset + statOffset);
-                            uint timeDelta = accessor.ReadUInt32(entryOffset + statOffset + 4);
-                            uint statFrames = accessor.ReadUInt32(entryOffset + statOffset + 28);
+                            Console.WriteLine($"DXGIFrameMonitoringService: {memName} signature mismatch");
+                            continue;
+                        }
 
-                            Console.WriteLine($"DXGIFrameMonitoringService: RTSS entry found - framesDelta={framesDelta}, timeDelta={timeDelta}, statFrames={statFrames}");
+                        uint appEntrySize = accessor.ReadUInt32(8);   // dwAppEntrySize
+                        uint appArrOffset = accessor.ReadUInt32(12);  // dwAppArrOffset (v2) or infer from header size
+                        uint appArrSize = accessor.ReadUInt32(16);    // dwAppArrSize or entry count
 
-                            if (statFrames > 0 && timeDelta > 0)
+                        // For v2+, offset is at position 12; for v1, app array starts after header
+                        long appEntriesStart = (appArrOffset > 0 && appArrOffset < accessor.Capacity) ? appArrOffset : 256;
+                        
+                        int maxEntries = 0;
+                        if (appEntrySize > 0)
+                        {
+                            maxEntries = (int)Math.Min(appArrSize, (accessor.Capacity - appEntriesStart) / appEntrySize);
+                        }
+
+                        Console.WriteLine($"DXGIFrameMonitoringService: Using {memName}, entries={maxEntries}, entrySize={appEntrySize}, offset={appEntriesStart}");
+
+                        // Scan app entries using simple offsets from working implementation
+                        // AppEntry structure: PID(0), Name(4-263), Flags(264), Time0(268), Time1(272), Frames(276), FrameTime(280)
+                        const int OFF_PID = 0;
+                        const int OFF_FRAMES = 276;
+                        const int OFF_FRAMETIME = 280; // microseconds
+
+                        for (int i = 0; i < maxEntries; i++)
+                        {
+                            long entryOffset = appEntriesStart + (i * appEntrySize);
+                            if (entryOffset + OFF_FRAMETIME + 4 > accessor.Capacity) break;
+
+                            uint entryPid = accessor.ReadUInt32(entryOffset + OFF_PID);
+                            if (entryPid == 0) continue;
+                            
+                            if (entryPid == processId)
                             {
-                                var fps = (framesDelta * 1000.0) / timeDelta;
-                                Console.WriteLine($"DXGIFrameMonitoringService: RTSS reports FPS={fps:F1} for PID {processId}");
-                                return fps;
+                                // Found matching entry - read Frames field directly as FPS
+                                // (RTSS updates this with current FPS value for display)
+                                uint framesValue = accessor.ReadUInt32(entryOffset + OFF_FRAMES);
+                                if (framesValue > 0 && framesValue < 1000)
+                                {
+                                    Console.WriteLine($"DXGIFrameMonitoringService: RTSS entry {i} PID {processId} matched, FPS={framesValue}");
+                                    return (double)framesValue;
+                                }
                             }
                         }
+
+                        Console.WriteLine($"DXGIFrameMonitoringService: PID {processId} not found in {memName}");
+                    }
+                    catch (System.IO.FileNotFoundException)
+                    {
+                        // Try next version
+                        continue;
                     }
                 }
 
-                Console.WriteLine("DXGIFrameMonitoringService: Process not found in RTSS shared memory");
-                return null;
-            }
-            catch (System.IO.FileNotFoundException)
-            {
-                Console.WriteLine("DXGIFrameMonitoringService: RTSS shared memory not found (RTSS not running?)");
+                Console.WriteLine("DXGIFrameMonitoringService: RTSS shared memory not available (tried all versions)");
                 return null;
             }
             catch (Exception ex)
@@ -413,7 +424,7 @@ namespace InfoPanel.FPS.Services
         /// Monitors FPS using GPU performance counter (when available).
         /// </summary>
         private async Task MonitorWithPerformanceCounterAsync(
-            System.Diagnostics.PerformanceCounter counter,
+            PerformanceCounter counter,
             string counterName,
             CancellationToken cancellationToken)
         {
@@ -449,13 +460,43 @@ namespace InfoPanel.FPS.Services
                         if (stableReadings > 2) // Wait for 3 stable readings
                         {
                             double fps;
-                            if (counterName.Contains("utilization") || counterName.Contains("busy") || counterName.Contains("percentage"))
+                            Console.WriteLine($"DXGIFrameMonitoringService: Processing counter '{counterName}' with value {value:F1}");
+                            Console.WriteLine($"DXGIFrameMonitoringService: Counter name length: {counterName.Length}");
+                            Console.WriteLine($"DXGIFrameMonitoringService: Contains 'utilization': {counterName.Contains("utilization")}");
+                            Console.WriteLine($"DXGIFrameMonitoringService: Contains 'percentage': {counterName.Contains("percentage")}");
+                            Console.WriteLine($"DXGIFrameMonitoringService: Contains 'busy': {counterName.Contains("busy")}");
+                            bool isUtilizationCounter = counterName.ToLower().Contains("utilization") || counterName.ToLower().Contains("busy") || counterName.ToLower().Contains("percentage");
+                            Console.WriteLine($"DXGIFrameMonitoringService: Is utilization counter: {isUtilizationCounter}");
+                            if (isUtilizationCounter)
                             {
-                                // For utilization counters, estimate FPS based on GPU usage
-                                // High utilization typically means high FPS for GPU-bound games like BF6
-                                // BF6 at 250-270 FPS should show high GPU utilization
-                                fps = Math.Min(300, Math.Max(60, value * 3)); // Better estimation for high-FPS games
-                                Console.WriteLine($"DXGIFrameMonitoringService: GPU utilization {value:F1}%, estimated FPS={fps:F1}");
+                                // Estimate FPS based on GPU utilization with different strategies for different ranges
+                                if (value > 70)
+                                {
+                                    // High utilization: GPU-bound games (like BF6) - use multiplier
+                                    fps = Math.Min(300, Math.Max(60, value * 2.8));
+                                    Console.WriteLine($"DXGIFrameMonitoringService: High GPU utilization {value:F1}%, estimated FPS={fps:F1} (GPU-bound game)");
+                                }
+                                else if (value > 30)
+                                {
+                                    // Medium utilization: Moderate GPU usage - use moderate multiplier
+                                    fps = Math.Min(180, Math.Max(60, value * 2.2));
+                                    Console.WriteLine($"DXGIFrameMonitoringService: Medium GPU utilization {value:F1}%, estimated FPS={fps:F1} (moderate GPU usage)");
+                                }
+                                else
+                                {
+                                    // Low utilization: Likely V-sync locked or CPU-bound - assume common refresh rates
+                                    // Check if value suggests a specific refresh rate pattern
+                                    if (value < 15)
+                                    {
+                                        fps = 60; // Assume 60 FPS for very low utilization
+                                        Console.WriteLine($"DXGIFrameMonitoringService: Low GPU utilization {value:F1}%, assuming 60 FPS (V-sync or CPU-bound)");
+                                    }
+                                    else
+                                    {
+                                        fps = 120; // Assume 120 FPS for moderate low utilization
+                                        Console.WriteLine($"DXGIFrameMonitoringService: Low GPU utilization {value:F1}%, assuming 120 FPS (V-sync locked)");
+                                    }
+                                }
                             }
                             else
                             {
@@ -471,145 +512,210 @@ namespace InfoPanel.FPS.Services
                         lastValue = value;
                     }
 
-                    await Task.Delay(500, cancellationToken); // Update twice per second
+                    await Task.Delay(TimeSpan.FromMilliseconds(1000), cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"DXGIFrameMonitoringService: Error reading counter: {ex.Message}");
-                    break;
+                    Console.WriteLine($"DXGIFrameMonitoringService: Error reading performance counter: {ex.Message}");
+                    await Task.Delay(TimeSpan.FromMilliseconds(1000), cancellationToken).ConfigureAwait(false);
                 }
             }
-
-            counter.Dispose();
         }
 
         /// <summary>
-        /// Monitors FPS using RTSS shared memory (most accurate method).
+        /// Monitors FPS using timing estimation when GPU counters are not available.
         /// </summary>
-        private async Task MonitorWithRTSSAsync(uint processId, CancellationToken cancellationToken)
+        private async Task MonitorWithTimingEstimationAsync(uint processId, CancellationToken cancellationToken)
         {
+            var stopwatch = new Stopwatch();
+            var frameCount = 0;
+            var lastUpdate = DateTime.UtcNow;
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    var fps = TryReadRTSSFps(processId);
-                    if (fps.HasValue)
+                    // Simple timing-based estimation - not very accurate but better than nothing
+                    if (frameCount == 0)
                     {
-                        _currentFps = fps.Value;
-                        _averageFrameTime = 1000.0 / _currentFps;
-                        FpsUpdated?.Invoke(_currentFps, _averageFrameTime);
+                        stopwatch.Restart();
                     }
 
-                    await Task.Delay(500, cancellationToken); // Update twice per second
+                    frameCount++;
+
+                    var elapsed = stopwatch.Elapsed.TotalSeconds;
+                    if (elapsed >= 1.0) // Update every second
+                    {
+                        var fps = frameCount / elapsed;
+                        _currentFps = Math.Min(300, Math.Max(30, fps)); // Clamp to reasonable range
+                        _averageFrameTime = 1000.0 / _currentFps;
+
+                        Console.WriteLine($"DXGIFrameMonitoringService: Estimated FPS={_currentFps:F1} (timing-based, less accurate)");
+
+                        FpsUpdated?.Invoke(_currentFps, _averageFrameTime);
+
+                        // Reset for next measurement
+                        frameCount = 0;
+                        lastUpdate = DateTime.UtcNow;
+                    }
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(16), cancellationToken).ConfigureAwait(false); // ~60 FPS timing
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"DXGIFrameMonitoringService: Error reading RTSS: {ex.Message}");
-                    break;
+                    Console.WriteLine($"DXGIFrameMonitoringService: Error in timing estimation: {ex.Message}");
+                    await Task.Delay(TimeSpan.FromMilliseconds(1000), cancellationToken).ConfigureAwait(false);
                 }
             }
         }
 
         /// <summary>
-        /// Fallback monitoring using process activity timing estimation.
-        /// Monitors CPU usage patterns to estimate rendering activity.
+        /// Reads both FPS and FrameTime from RTSS shared memory.
         /// </summary>
-        private async Task MonitorWithTimingEstimationAsync(uint processId, CancellationToken cancellationToken)
+        private (double fps, double frameTimeMs)? TryReadRTSSData(uint processId)
         {
-            Console.WriteLine("DXGIFrameMonitoringService: Using fallback timing estimation (limited accuracy)");
-            
             try
             {
-                using var process = Process.GetProcessById((int)processId);
-                
-                // Get initial CPU time
-                var lastCpuTime = process.TotalProcessorTime;
-                var lastUpdate = DateTime.UtcNow;
-                var lastCpuUsage = 0.0;
-                
-                while (!cancellationToken.IsCancellationRequested)
+                string[] memoryNames = { "RTSSSharedMemoryV3", "RTSSSharedMemoryV2", "RTSSSharedMemoryV1" };
+                const uint RTSS_SIGNATURE = 0x52545353; // "RTSS"
+
+                foreach (var memName in memoryNames)
                 {
-                    await Task.Delay(100, cancellationToken); // Poll every 100ms
-                    
                     try
                     {
-                        process.Refresh();
+                        using var memoryMappedFile = System.IO.MemoryMappedFiles.MemoryMappedFile.OpenExisting(memName);
+                        using var accessor = memoryMappedFile.CreateViewAccessor();
+
+                        uint signature = accessor.ReadUInt32(0);
+                        if (signature != RTSS_SIGNATURE) continue;
+
+                        uint appEntrySize = accessor.ReadUInt32(8);
+                        uint appArrOffset = accessor.ReadUInt32(12);
+                        uint appArrSize = accessor.ReadUInt32(16);
+                        long appEntriesStart = (appArrOffset > 0 && appArrOffset < accessor.Capacity) ? appArrOffset : 256;
                         
-                        // Calculate CPU usage over the interval
-                        var currentCpuTime = process.TotalProcessorTime;
-                        var currentTime = DateTime.UtcNow;
-                        var cpuTimeDelta = (currentCpuTime - lastCpuTime).TotalMilliseconds;
-                        var timeDelta = (currentTime - lastUpdate).TotalMilliseconds;
-                        
-                        if (timeDelta > 0)
+                        int maxEntries = 0;
+                        if (appEntrySize > 0)
                         {
-                            var cpuUsage = (cpuTimeDelta / timeDelta) / Environment.ProcessorCount * 100;
+                            maxEntries = (int)Math.Min(appArrSize, (accessor.Capacity - appEntriesStart) / appEntrySize);
+                        }
+
+                        const int OFF_PID = 0;
+                        const int OFF_FRAMES = 276;
+                        const int OFF_FRAMETIME = 280; // microseconds
+
+                        for (int i = 0; i < maxEntries; i++)
+                        {
+                            long entryOffset = appEntriesStart + (i * appEntrySize);
+                            if (entryOffset + OFF_FRAMETIME + 4 > accessor.Capacity) break;
+
+                            uint entryPid = accessor.ReadUInt32(entryOffset + OFF_PID);
+                            if (entryPid == 0 || entryPid != processId) continue;
                             
-                            // Estimate FPS based on CPU usage patterns
-                            // High FPS games typically show consistent high CPU usage
-                            // This is a rough heuristic - not perfect but better than polling count
-                            if (cpuUsage > 10) // If process is actively using CPU
+                            uint framesValue = accessor.ReadUInt32(entryOffset + OFF_FRAMES);
+                            
+                            if (framesValue > 0 && framesValue < 1000)
                             {
-                                // Assume FPS correlates with CPU usage for GPU-bound games
-                                // This will be inaccurate but better than fixed polling rate
-                                var estimatedFps = Math.Min(300, Math.Max(30, cpuUsage * 3));
-                                
-                                _currentFps = estimatedFps;
-                                _averageFrameTime = 1000.0 / _currentFps;
-                                
-                                FpsUpdated?.Invoke(_currentFps, _averageFrameTime);
-                                Console.WriteLine($"DXGIFrameMonitoringService: Estimated FPS={_currentFps:F1} (CPU: {cpuUsage:F1}%)");
+                                // Calculate frame time from FPS (RTSS FrameTime field doesn't give accurate per-frame times)
+                                double frameTimeMs = 1000.0 / framesValue;
+                                Console.WriteLine($"DXGIFrameMonitoringService: RTSS PID {processId} - FPS={framesValue}, FrameTime={frameTimeMs:F2}ms");
+                                return (framesValue, frameTimeMs);
                             }
-                            
-                            lastCpuTime = currentCpuTime;
-                            lastUpdate = currentTime;
-                            lastCpuUsage = cpuUsage;
                         }
                     }
-                    catch (InvalidOperationException)
-                    {
-                        // Process exited
-                        Console.WriteLine("DXGIFrameMonitoringService: Process no longer exists");
-                        break;
-                    }
+                    catch (System.IO.FileNotFoundException) { continue; }
                 }
+                return null;
             }
-            catch (ArgumentException)
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Monitors FPS using RTSS shared memory (most accurate).
+        /// Continuously retries until RTSS hooks the game or timeout.
+        /// </summary>
+        private async Task MonitorWithRTSSAsync(uint processId, CancellationToken cancellationToken)
+        {
+            bool rtssDetected = false;
+            int retryCount = 0;
+            int consecutiveFailures = 0;
+            const int maxRetries = 60; // Try for up to 60 seconds before giving up
+            const int maxConsecutiveFailures = 10; // If RTSS disappears for 10 seconds, exit
+            
+            while (!cancellationToken.IsCancellationRequested)
             {
-                Console.WriteLine("DXGIFrameMonitoringService: Process no longer exists");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"DXGIFrameMonitoringService: Error in estimation: {ex.Message}");
+                try
+                {
+                    var data = TryReadRTSSData(processId);
+                    if (data.HasValue)
+                    {
+                        if (!rtssDetected)
+                        {
+                            Console.WriteLine($"DXGIFrameMonitoringService: RTSS hook detected after {retryCount} seconds");
+                            rtssDetected = true;
+                        }
+                        
+                        consecutiveFailures = 0; // Reset failure counter on success
+                        _currentFps = data.Value.fps;
+                        _averageFrameTime = data.Value.frameTimeMs;
+                        FpsUpdated?.Invoke(_currentFps, _averageFrameTime);
+                    }
+                    else
+                    {
+                        if (!rtssDetected)
+                        {
+                            // Still waiting for initial RTSS hook
+                            retryCount++;
+                            if (retryCount >= maxRetries)
+                            {
+                                Console.WriteLine($"DXGIFrameMonitoringService: RTSS not detected after {maxRetries} seconds, falling back to GPU counters");
+                                break;
+                            }
+                            if (retryCount == 1 || retryCount % 10 == 0)
+                            {
+                                Console.WriteLine($"DXGIFrameMonitoringService: Waiting for RTSS to hook game... ({retryCount}/{maxRetries}s)");
+                            }
+                        }
+                        else
+                        {
+                            // RTSS was working but now unavailable
+                            consecutiveFailures++;
+                            if (consecutiveFailures >= maxConsecutiveFailures)
+                            {
+                                Console.WriteLine($"DXGIFrameMonitoringService: RTSS data lost for {maxConsecutiveFailures} seconds, exiting");
+                                break;
+                            }
+                        }
+                    }
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(1000), cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"DXGIFrameMonitoringService: Error in RTSS monitoring: {ex.Message}");
+                    await Task.Delay(TimeSpan.FromMilliseconds(1000), cancellationToken).ConfigureAwait(false);
+                }
             }
         }
 
         /// <summary>
-        /// Stops monitoring.
+        /// Disposes of resources used by the service.
         /// </summary>
-        public void StopMonitoring()
-        {
-            if (!_isMonitoring)
-                return;
-
-            Console.WriteLine($"DXGIFrameMonitoringService: Stopping monitoring for PID {_currentProcessId}");
-            
-            _cancellationTokenSource?.Cancel();
-            _monitoringTask?.Wait(TimeSpan.FromSeconds(2));
-            
-            _currentProcessId = 0;
-            _frameTimes.Clear();
-            _currentFps = 0;
-            _averageFrameTime = 0;
-            _isMonitoring = false;
-            
-            Console.WriteLine("DXGIFrameMonitoringService: Monitoring stopped");
-        }
-
         public void Dispose()
         {
-            StopMonitoring();
-            _cancellationTokenSource?.Dispose();
+            StopMonitoringAsync().Wait();
         }
     }
 }

@@ -53,11 +53,14 @@ namespace InfoPanel.FPS.Services
             if (_frameTimeCount < MonitoringConstants.MaxFrameTimes)
                 _frameTimeCount++;
 
+            Console.WriteLine($"PerformanceMonitoringService.OnFpsUpdated: FPS={fps:F1}, FrameTime={frameTimeMs:F2}ms, BufferCount={_frameTimeCount}");
+
             // Update histogram for percentile calculations
             UpdateHistogram((float)frameTimeMs);
 
             // Calculate metrics
             var metrics = CalculateMetrics((float)fps, (float)frameTimeMs);
+            Console.WriteLine($"PerformanceMonitoringService.OnFpsUpdated: Calculated 1% Low={metrics.OnePercentLowFps:F1}");
             MetricsUpdated?.Invoke(metrics);
 
             _updateCount++;
@@ -169,33 +172,37 @@ namespace InfoPanel.FPS.Services
         private float CalculateOnePercentLowFps()
         {
             if (_frameTimeCount < 10)
+            {
+                Console.WriteLine($"PerformanceMonitoringService.CalculateOnePercentLowFps: Not enough samples ({_frameTimeCount} < 10)");
                 return 0;
-
-            // Build histogram
-            Array.Clear(_histogram, 0, _histogram.Length);
-            
-            for (int i = 0; i < _frameTimeCount; i++)
-            {
-                float frameTime = _frameTimes[i];
-                int binIndex = Math.Min((int)(frameTime / 2.0f), MonitoringConstants.HistogramSize - 1);
-                _histogram[binIndex]++;
             }
 
-            // Find 99th percentile
-            int targetIndex = (int)(_frameTimeCount * 0.99f);
-            int accumulated = 0;
+            // Use rolling window of last 100 frames (or all frames if fewer) to match RTSS behavior
+            // This prevents old startup spikes from affecting current 1% low readings
+            int windowSize = Math.Min(100, _frameTimeCount);
+            float[] recentFrameTimes = new float[windowSize];
             
-            for (int i = MonitoringConstants.HistogramSize - 1; i >= 0; i--)
+            // Copy the most recent frame times from circular buffer
+            for (int i = 0; i < windowSize; i++)
             {
-                accumulated += (int)_histogram[i];
-                if (accumulated >= targetIndex)
-                {
-                    float frameTime99th = i * 2.0f;
-                    return frameTime99th > 0 ? 1000.0f / frameTime99th : 0;
-                }
+                int bufferIndex = (_frameTimeIndex - windowSize + i + MonitoringConstants.MaxFrameTimes) % MonitoringConstants.MaxFrameTimes;
+                recentFrameTimes[i] = _frameTimes[bufferIndex];
             }
+            
+            // Sort to find 99th percentile (1% low)
+            Array.Sort(recentFrameTimes);
 
-            return 0;
+            // 1% low FPS = 99th percentile of frame times (slowest 1% of frames in window)
+            int percentile99Index = (int)(windowSize * 0.99f);
+            if (percentile99Index >= windowSize)
+                percentile99Index = windowSize - 1;
+
+            float frameTime99th = recentFrameTimes[percentile99Index];
+            float onePctLow = frameTime99th > 0 ? 1000.0f / frameTime99th : 0;
+            
+            Console.WriteLine($"PerformanceMonitoringService.CalculateOnePercentLowFps: 99th percentile at index {percentile99Index} of {windowSize} recent frames, frameTime={frameTime99th:F2}ms, 1%Low={onePctLow:F1}");
+            
+            return onePctLow;
         }
 
         /// <summary>
