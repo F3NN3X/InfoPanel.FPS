@@ -24,6 +24,12 @@ namespace InfoPanel.FPS.Models
         /// Total number of frame time samples collected.
         /// </summary>
         public int FrameTimeCount { get; set; }
+        
+        /// <summary>
+        /// Process ID that RTSS is actively monitoring.
+        /// Used to ensure window title matches the process providing FPS data.
+        /// </summary>
+        public uint MonitoredProcessId { get; set; }
 
         /// <summary>
         /// Indicates whether the metrics are valid and should be displayed.

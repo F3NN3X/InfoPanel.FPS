@@ -15,6 +15,7 @@ namespace InfoPanel.FPS.Services
 
         private double _currentFps;
         private double _averageFrameTime;
+        private uint _monitoredProcessId;
 
         private CancellationTokenSource? _cts;
         private volatile bool _isMonitoring;
@@ -23,6 +24,12 @@ namespace InfoPanel.FPS.Services
         /// Event fired when FPS data is updated.
         /// </summary>
         public event Action<double, double>? FpsUpdated;
+        
+        /// <summary>
+        /// Gets the process ID currently being monitored by RTSS.
+        /// Returns 0 if not monitoring.
+        /// </summary>
+        public uint MonitoredProcessId => _monitoredProcessId;
 
         /// <summary>
         /// Gets the current FPS value.
@@ -47,6 +54,7 @@ namespace InfoPanel.FPS.Services
 
             _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _isMonitoring = true;
+            _monitoredProcessId = processId;
 
             Console.WriteLine($"DXGIFrameMonitoringService: Starting frame monitoring for PID {processId}");
 
@@ -106,6 +114,7 @@ namespace InfoPanel.FPS.Services
                 _cts = null;
             }
             _isMonitoring = false;
+            _monitoredProcessId = 0; // Clear monitored PID
             await Task.Delay(100); // Allow cleanup
         }
 

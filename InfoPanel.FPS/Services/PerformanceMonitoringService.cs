@@ -92,7 +92,8 @@ namespace InfoPanel.FPS.Services
                 Fps = fps,
                 FrameTime = frameTime,
                 OnePercentLowFps = CalculateOnePercentLowFps(),
-                FrameTimeCount = _frameTimeCount
+                FrameTimeCount = _frameTimeCount,
+                MonitoredProcessId = _dxgiService.MonitoredProcessId
             };
         }
 
@@ -154,7 +155,8 @@ namespace InfoPanel.FPS.Services
                 Fps = currentFps,
                 FrameTime = currentFrameTime,
                 OnePercentLowFps = CalculateOnePercentLowFps(),
-                FrameTimeCount = _frameTimeCount
+                FrameTimeCount = _frameTimeCount,
+                MonitoredProcessId = _dxgiService.MonitoredProcessId
             };
         }
 

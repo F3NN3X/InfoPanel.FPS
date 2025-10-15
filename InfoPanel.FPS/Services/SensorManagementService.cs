@@ -18,6 +18,15 @@ namespace InfoPanel.FPS.Services
         private readonly PluginText _resolutionSensor;
         private readonly PluginSensor _refreshRateSensor;
         private readonly PluginText _gpuNameSensor;
+        
+        /// <summary>
+        /// Cached window title to prevent flickering when window validation temporarily fails.
+        /// Window.IsValid can become false during normal operation (e.g., when fullscreen state briefly changes,
+        /// during alt-tab, or window events) even though monitoring is still active and FPS is being captured.
+        /// By caching the last known good window title, we prevent the sensor from showing "Nothing to capture"
+        /// during these temporary validation failures.
+        /// </summary>
+        private string _lastValidWindowTitle = string.Empty;
 
         /// <summary>
         /// Initializes a new instance of the SensorManagementService.
@@ -120,16 +129,54 @@ namespace InfoPanel.FPS.Services
                     _onePercentLowFpsSensor.Value = 0;
                 }
 
-                // Update window information
-                if (state.Window.IsValid && state.IsMonitoring)
+                // Update window information with caching to prevent flickering
+                // ONLY show window title for the process that RTSS is actively monitoring
+                if (state.IsMonitoring)
                 {
-                    _windowTitleSensor.Value = !string.IsNullOrWhiteSpace(state.Window.WindowTitle) 
-                        ? state.Window.WindowTitle 
-                        : "Untitled";
+                    // Get the PID that RTSS is actually monitoring (providing FPS data)
+                    uint monitoredPid = state.Performance.MonitoredProcessId;
+                    
+                    // DETAILED DEBUG: Show all values for diagnosis
+                    Console.WriteLine($"[TITLE CACHE DEBUG] MonitoredPID: {monitoredPid}, WindowPID: {state.Window.ProcessId}, WindowTitle: '{state.Window.WindowTitle}', CachedTitle: '{_lastValidWindowTitle}'");
+                    
+                    // Update cached title ONLY if window PID matches RTSS monitored PID
+                    if (monitoredPid > 0 && 
+                        state.Window.ProcessId == monitoredPid && 
+                        !string.IsNullOrWhiteSpace(state.Window.WindowTitle))
+                    {
+                        if (_lastValidWindowTitle != state.Window.WindowTitle)
+                        {
+                            Console.WriteLine($"Window title cached for RTSS PID {monitoredPid}: '{state.Window.WindowTitle}' (was '{_lastValidWindowTitle}')");
+                            _lastValidWindowTitle = state.Window.WindowTitle;
+                        }
+                    }
+                    else
+                    {
+                        // Log why caching failed
+                        if (monitoredPid == 0)
+                            Console.WriteLine("[TITLE CACHE] Not caching: MonitoredPID is 0 (RTSS not hooked yet)");
+                        else if (state.Window.ProcessId != monitoredPid)
+                            Console.WriteLine($"[TITLE CACHE] Not caching: Window PID {state.Window.ProcessId} != Monitored PID {monitoredPid}");
+                        else if (string.IsNullOrWhiteSpace(state.Window.WindowTitle))
+                            Console.WriteLine($"[TITLE CACHE] Not caching: Window title is empty/whitespace");
+                    }
+                    
+                    // Use cached title if we have one, otherwise show NoCapture
+                    _windowTitleSensor.Value = !string.IsNullOrEmpty(_lastValidWindowTitle) 
+                        ? _lastValidWindowTitle 
+                        : SensorConstants.NoCapture;
+                    
+                    // Debug log for mismatched PIDs
+                    if (monitoredPid > 0 && state.Window.ProcessId > 0 && state.Window.ProcessId != monitoredPid)
+                    {
+                        Console.WriteLine($"PID mismatch: Window PID {state.Window.ProcessId} ({state.Window.WindowTitle}) != RTSS monitored PID {monitoredPid}, ignoring window title");
+                    }
                 }
                 else
                 {
-                    _windowTitleSensor.Value = state.IsMonitoring ? SensorConstants.NoCapture : SensorConstants.DefaultWindowTitle;
+                    // When not monitoring, reset cache and show default
+                    _lastValidWindowTitle = string.Empty;
+                    _windowTitleSensor.Value = SensorConstants.DefaultWindowTitle;
                 }
 
                 // Update system information (always available)
@@ -167,6 +214,9 @@ namespace InfoPanel.FPS.Services
                 _resolutionSensor.Value = SensorConstants.DefaultResolution;
                 _refreshRateSensor.Value = 0;
                 _gpuNameSensor.Value = SensorConstants.DefaultGpuName;
+                
+                // Clear cached window title
+                _lastValidWindowTitle = string.Empty;
 
                 Console.WriteLine("All sensors reset to default values");
             }
@@ -228,16 +278,9 @@ namespace InfoPanel.FPS.Services
                 }
                 else
                 {
-                    // Only reset to NoCapture if we don't have a good game title
-                    if (!_windowTitleSensor.Value.Contains("Battlefield") && !_windowTitleSensor.Value.Contains("bf6"))
-                    {
-                        _windowTitleSensor.Value = SensorConstants.NoCapture;
-                        Console.WriteLine($"Window sensor updated - Title: {_windowTitleSensor.Value}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Window sensor preserved game title - keeping: {_windowTitleSensor.Value}");
-                    }
+                    // Reset to NoCapture when window becomes invalid
+                    _windowTitleSensor.Value = SensorConstants.NoCapture;
+                    Console.WriteLine($"Window sensor reset - Title: {_windowTitleSensor.Value}");
                 }
             }
             catch (Exception ex)

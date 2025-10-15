@@ -161,31 +161,6 @@ namespace InfoPanel.FPS
                 var currentWindow = _windowDetectionService.GetCurrentFullscreenWindow();
                 uint pid = currentWindow?.ProcessId ?? 0;
                 
-                // ANTI-CHEAT BYPASS: Force detection of BF6 if window detection fails
-                if (pid == 0)
-                {
-                    try
-                    {
-                        var bf6Processes = System.Diagnostics.Process.GetProcessesByName("bf6");
-                        if (bf6Processes.Length > 0)
-                        {
-                            pid = (uint)bf6Processes[0].Id;
-                            Console.WriteLine($"ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: {pid}) - bypassing window detection");
-                            currentWindow = new WindowInformation
-                            {
-                                ProcessId = pid,
-                                WindowHandle = bf6Processes[0].MainWindowHandle,
-                                WindowTitle = bf6Processes[0].MainWindowTitle ?? "Battlefield™ 6",
-                                IsFullscreen = true
-                            };
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"ANTI-CHEAT BYPASS: Error detecting BF6: {ex.Message}");
-                    }
-                }
-                
                 // Update current window information if we have a valid window
                 if (pid != 0 && currentWindow != null)
                 {
@@ -207,11 +182,43 @@ namespace InfoPanel.FPS
                     _currentState.IsMonitoring = true;
                     await StartMonitoringAsync(pid).ConfigureAwait(false);
                 }
-                // If no fullscreen app detected but we're still monitoring, stop
+                // If no fullscreen app detected but we're still monitoring, check if RTSS monitored process still exists
                 else if (pid == 0 && _performanceService.IsMonitoring)
                 {
-                    Console.WriteLine("UpdateAsync detected no fullscreen app; stopping monitoring and resetting sensors");
-                    await StopMonitoringAsync().ConfigureAwait(false);
+                    // Check if the RTSS monitored process still exists (backgrounded/alt-tabbed)
+                    // NOTE: Must check the PID that RTSS is monitoring, not the current window PID!
+                    uint monitoredPid = _currentState.Performance.MonitoredProcessId;
+                    bool monitoredProcessExists = false;
+                    
+                    if (monitoredPid > 0)
+                    {
+                        try
+                        {
+                            using var process = System.Diagnostics.Process.GetProcessById((int)monitoredPid);
+                            monitoredProcessExists = !process.HasExited;
+                        }
+                        catch (ArgumentException)
+                        {
+                            monitoredProcessExists = false;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"UpdateAsync: Error checking if RTSS monitored process {monitoredPid} exists: {ex}");
+                            monitoredProcessExists = false;
+                        }
+                    }
+
+                    if (monitoredProcessExists)
+                    {
+                        Console.WriteLine($"UpdateAsync: RTSS monitored process {monitoredPid} still exists (backgrounded/alt-tabbed), continuing monitoring");
+                        // Process still exists - keep monitoring even though not fullscreen
+                        // Don't update _currentState.Window since we don't have new window data
+                    }
+                    else
+                    {
+                        Console.WriteLine($"UpdateAsync: RTSS monitored process {monitoredPid} no longer exists, stopping monitoring");
+                        await StopMonitoringAsync().ConfigureAwait(false);
+                    }
                 }
                 // Check if monitored process still exists (additional safety check)
                 else if (_performanceService.IsMonitoring && _currentState.Window.ProcessId != 0)
@@ -317,36 +324,6 @@ namespace InfoPanel.FPS
                     var systemInfo = _systemInfoService.GetSystemInformation();
                     uint pid = currentWindow?.ProcessId ?? 0;
 
-                    // ANTI-CHEAT BYPASS: Force detection of BF6 if window detection fails
-                    if (pid == 0)
-                    {
-                        try
-                        {
-                            var bf6Processes = System.Diagnostics.Process.GetProcessesByName("bf6");
-                            Console.WriteLine($"ANTI-CHEAT BYPASS: Found {bf6Processes.Length} BF6 processes");
-                            if (bf6Processes.Length > 0)
-                            {
-                                pid = (uint)bf6Processes[0].Id;
-                                Console.WriteLine($"ANTI-CHEAT BYPASS: Force-detected BF6 process (PID: {pid}) - bypassing window detection");
-                                currentWindow = new WindowInformation
-                                {
-                                    ProcessId = pid,
-                                    WindowHandle = bf6Processes[0].MainWindowHandle,
-                                    WindowTitle = bf6Processes[0].MainWindowTitle ?? "Battlefield™ 6",
-                                    IsFullscreen = true
-                                };
-                            }
-                            else
-                            {
-                                Console.WriteLine("ANTI-CHEAT BYPASS: No BF6 processes found");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"ANTI-CHEAT BYPASS: Error detecting BF6: {ex.Message}");
-                        }
-                    }
-
                     Console.WriteLine($"Continuous monitoring check - PID: {pid}, " +
                                     $"Title: {currentWindow?.WindowTitle ?? "None"}, " +
                                     $"IsMonitoring: {_performanceService.IsMonitoring}, " +
@@ -367,10 +344,45 @@ namespace InfoPanel.FPS
                     }
                     else if (pid == 0 && _performanceService.IsMonitoring)
                     {
-                        Console.WriteLine("STOPPING monitoring - no fullscreen app detected");
-                        // Stop monitoring when app closes or loses fullscreen
-                        await StopMonitoringAsync().ConfigureAwait(false);
-                        _currentState.System = systemInfo; // Update system info even when not monitoring
+                        // No fullscreen window detected, but check if RTSS monitored process still exists
+                        // (e.g., user alt-tabbed but RTSS still monitors the background process)
+                        // NOTE: Must check the PID that RTSS is monitoring, not the current window PID!
+                        uint monitoredPid = _currentState.Performance.MonitoredProcessId;
+                        bool monitoredProcessExists = false;
+                        
+                        if (monitoredPid > 0)
+                        {
+                            try
+                            {
+                                using var process = System.Diagnostics.Process.GetProcessById((int)monitoredPid);
+                                monitoredProcessExists = !process.HasExited;
+                            }
+                            catch (ArgumentException)
+                            {
+                                // Process not found
+                                monitoredProcessExists = false;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error checking if RTSS monitored process {monitoredPid} exists: {ex}");
+                                monitoredProcessExists = false;
+                            }
+                        }
+
+                        if (monitoredProcessExists)
+                        {
+                            Console.WriteLine($"RTSS monitored process {monitoredPid} still exists (backgrounded/alt-tabbed), continuing monitoring");
+                            // Process still exists - keep monitoring even though it's not fullscreen
+                            // RTSS will continue to report FPS data
+                            _currentState.System = systemInfo;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"RTSS monitored process {monitoredPid} no longer exists, stopping monitoring");
+                            // Process actually closed - stop monitoring
+                            await StopMonitoringAsync().ConfigureAwait(false);
+                            _currentState.System = systemInfo; // Update system info even when not monitoring
+                        }
                     }
                     else if (pid != 0 && _performanceService.IsMonitoring)
                     {
