@@ -8,7 +8,7 @@ InfoPanel.FPS provides detailed performance statistics for running fullscreen ap
 
 ![InfoPanel.FPS Screenshot](https://i.imgur.com/VsyjMRh.png)
 
-**Version:** 1.0.16  
+**Version:** 1.1.1  
 **Author:** F3NN3X
 
 ## Features
