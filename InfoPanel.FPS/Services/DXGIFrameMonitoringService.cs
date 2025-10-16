@@ -582,6 +582,139 @@ namespace InfoPanel.FPS.Services
         }
 
         /// <summary>
+        /// Gets the process ID that RTSS is currently monitoring (has active FPS data).
+        /// Returns 0 if no process is being monitored.
+        /// </summary>
+        public uint GetRTSSMonitoredProcessId()
+        {
+            try
+            {
+                Console.WriteLine("DXGIFrameMonitoringService: Checking for RTSS monitored processes...");
+                string[] memoryNames = { "RTSSSharedMemoryV3", "RTSSSharedMemoryV2", "RTSSSharedMemoryV1" };
+                const uint RTSS_SIGNATURE = 0x52545353; // "RTSS"
+
+                foreach (var memName in memoryNames)
+                {
+                    try
+                    {
+                        Console.WriteLine($"DXGIFrameMonitoringService: Trying to open {memName}...");
+                        using var memoryMappedFile = System.IO.MemoryMappedFiles.MemoryMappedFile.OpenExisting(memName);
+                        using var accessor = memoryMappedFile.CreateViewAccessor();
+
+                        uint signature = accessor.ReadUInt32(0);
+                        Console.WriteLine($"DXGIFrameMonitoringService: {memName} signature: 0x{signature:X8}");
+                        if (signature != RTSS_SIGNATURE) continue;
+
+                        uint appEntrySize = accessor.ReadUInt32(8);
+                        uint appArrOffset = accessor.ReadUInt32(12);
+                        uint appArrSize = accessor.ReadUInt32(16);
+                        long appEntriesStart = (appArrOffset > 0 && appArrOffset < accessor.Capacity) ? appArrOffset : 256;
+
+                        Console.WriteLine($"DXGIFrameMonitoringService: {memName} appEntrySize={appEntrySize}, appArrOffset={appArrOffset}, appArrSize={appArrSize}");
+
+                        int maxEntries = 0;
+                        if (appEntrySize > 0)
+                        {
+                            maxEntries = (int)Math.Min(appArrSize, (accessor.Capacity - appEntriesStart) / appEntrySize);
+                        }
+
+                        Console.WriteLine($"DXGIFrameMonitoringService: {memName} scanning {maxEntries} entries...");
+
+                        const int OFF_PID = 0;
+                        const int OFF_FRAMES = 276;
+
+                        uint candidatePidWithZeroFps = 0;
+                        uint candidatePidTimestamp = 0;
+
+                        // First pass: Look for active entries with valid FPS data
+                        for (int i = 0; i < maxEntries; i++)
+                        {
+                            long entryOffset = appEntriesStart + (i * appEntrySize);
+                            if (entryOffset + OFF_FRAMES + 4 > accessor.Capacity) break;
+
+                            uint entryPid = accessor.ReadUInt32(entryOffset + OFF_PID);
+                            if (entryPid == 0) continue;
+
+                            uint framesValue = accessor.ReadUInt32(entryOffset + OFF_FRAMES);
+
+                            Console.WriteLine($"DXGIFrameMonitoringService: Entry {i} - PID: {entryPid}, FPS: {framesValue}");
+
+                            // Check if this PID has active FPS data (>0 and reasonable range)
+                            if (framesValue > 0 && framesValue < 1000)
+                            {
+                                // Verify the process actually exists before returning it
+                                try
+                                {
+                                    var process = System.Diagnostics.Process.GetProcessById((int)entryPid);
+                                    Console.WriteLine($"DXGIFrameMonitoringService: Found RTSS monitored PID: {entryPid} (FPS: {framesValue})");
+                                    return entryPid;
+                                }
+                                catch (ArgumentException)
+                                {
+                                    Console.WriteLine($"DXGIFrameMonitoringService: RTSS has stale entry for PID {entryPid} (FPS: {framesValue}) - process no longer exists");
+                                    continue; // Process doesn't exist, skip this entry
+                                }
+                            }
+
+                            // Store the most recent PID with FPS: 0 as a candidate for early hook detection
+                            if (framesValue == 0)
+                            {
+                                // Try to get process timestamp to find the most recently started process
+                                try
+                                {
+                                    var process = System.Diagnostics.Process.GetProcessById((int)entryPid);
+                                    var startTime = process.StartTime;
+                                    uint timestamp = (uint)((DateTimeOffset)startTime).ToUnixTimeSeconds();
+                                    uint currentTime = (uint)((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
+                                    
+                                    // Only consider processes started in the last 2 minutes for early detection
+                                    uint maxAgeSeconds = 120; // 2 minutes
+                                    if (currentTime - timestamp > maxAgeSeconds)
+                                    {
+                                        Console.WriteLine($"DXGIFrameMonitoringService: Skipping old candidate PID {entryPid} (started: {startTime}, age: {currentTime - timestamp}s)");
+                                        continue; // Skip old processes
+                                    }
+                                    
+                                    if (candidatePidWithZeroFps == 0 || timestamp > candidatePidTimestamp)
+                                    {
+                                        candidatePidWithZeroFps = entryPid;
+                                        candidatePidTimestamp = timestamp;
+                                        Console.WriteLine($"DXGIFrameMonitoringService: Updated candidate PID {entryPid} (started: {startTime})");
+                                    }
+                                }
+                                catch 
+                                {
+                                    // Process might have exited, skip it
+                                }
+                            }
+                        }
+
+                        // If no active monitoring found but we have a recent candidate, use it for early detection
+                        if (candidatePidWithZeroFps != 0)
+                        {
+                            Console.WriteLine($"DXGIFrameMonitoringService: No active FPS data found, but returning candidate PID {candidatePidWithZeroFps} for early hook detection");
+                            return candidatePidWithZeroFps;
+                        }
+
+                        Console.WriteLine($"DXGIFrameMonitoringService: {memName} - no active entries found");
+                    }
+                    catch (System.IO.FileNotFoundException)
+                    {
+                        Console.WriteLine($"DXGIFrameMonitoringService: {memName} not found");
+                        continue;
+                    }
+                }
+                Console.WriteLine("DXGIFrameMonitoringService: No RTSS shared memory found or no active monitoring");
+                return 0; // No active monitoring found
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"DXGIFrameMonitoringService: Error checking RTSS monitored PID: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
         /// Reads both FPS and FrameTime from RTSS shared memory.
         /// </summary>
         private (double fps, double frameTimeMs)? TryReadRTSSData(uint processId)

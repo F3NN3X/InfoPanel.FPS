@@ -35,6 +35,12 @@ namespace InfoPanel.FPS.Interfaces
         /// </summary>
         /// <returns>Current performance metrics or null if not monitoring.</returns>
         PerformanceMetrics? GetCurrentMetrics();
+
+        /// <summary>
+        /// Gets the process ID that RTSS is currently monitoring.
+        /// </summary>
+        /// <returns>The monitored process ID, or 0 if no process is being monitored.</returns>
+        uint GetRTSSMonitoredProcessId();
     }
 
     /// <summary>
@@ -62,6 +68,13 @@ namespace InfoPanel.FPS.Interfaces
         /// </summary>
         /// <returns>Window information or null if no fullscreen window is detected.</returns>
         WindowInformation? GetCurrentFullscreenWindow();
+
+        /// <summary>
+        /// Gets the window title for a specific process ID.
+        /// </summary>
+        /// <param name="processId">The process ID to get the window title for.</param>
+        /// <returns>The window title, or empty string if not found.</returns>
+        string GetWindowTitleByPID(uint processId);
     }
 
     /// <summary>

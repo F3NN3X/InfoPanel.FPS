@@ -6,11 +6,11 @@ using InfoPanel.Plugins;
 
 /*
  * Plugin: InfoPanel.FPS
- * Version: 1.1.6
+ * Version: 1.1.7-RTSS
  * Author: F3NN3X
  * Description: An optimized InfoPanel plugin using RTSS shared memory to monitor game performance. Reads FPS directly from RivaTuner Statistics Server for pixel-perfect accuracy and anti-cheat compatibility. Tracks FPS, frame time, 1% low FPS over time, window title, display resolution, refresh rate, and GPU name in the UI. Features thread-safe sensor updates and universal game support without hardcoded logic.
  * Changelog (Recent):
- *   - v1.1.6 (October 15, 2025): Thread safety fixes and RTSS improvements.
+ *   - v1.1.7-RTSS (October 16, 2025): Fixed FPS flashing after game close.
  *     - Fixed collection modification crash with thread-safe sensor updates using lock synchronization.
  *     - Direct FPS reading from RTSS Frames field (offset 276) for pixel-perfect accuracy.
  *     - Removed all hardcoded game logic for universal compatibility.
@@ -27,13 +27,6 @@ using InfoPanel.Plugins;
  *     - Enhanced cleanup detection: dual-detection system ensures reliable app closure detection.
  *     - Improved state management: simplified monitoring flags prevent rapid switching issues.
  *     - Added robust error handling and comprehensive logging throughout the application.
- *   - v1.0.17 (July 12, 2025): Improved resolution display format.
- *     - Changed resolution format to include spaces (e.g., "3840 x 2160" instead of "3840x2160") for better readability.
- *     - Updated all instances of resolution display for consistency.
- *   - v1.0.16 (June 3, 2025): Added GPU Name sensor.
- *     - New PluginText sensor displays the name of the system's graphics card in the UI.
- *     - Added System.Management reference for WMI queries to detect GPU information.
- *     - Ensured all dependencies are in root folder without subdirectories.
  * Note: Full history in CHANGELOG.md. A benign log error ("Array is variable sized and does not follow prefix convention") may appear but does not impact functionality.
  */
 
@@ -152,45 +145,86 @@ namespace InfoPanel.FPS
 
         /// <summary>
         /// Periodic update method that updates sensors with current state.
-        /// Also performs cleanup detection like the original version.
+        /// RTSS-first approach: Check what PID RTSS is monitoring, then get window title for that PID.
         /// </summary>
         public override async Task UpdateAsync(CancellationToken cancellationToken)
         {
             try
             {
-                // Traditional window detection and monitoring logic
+                // RTSS-FIRST APPROACH: Check what PID RTSS is currently monitoring
+                uint rtssMonitoredPid = _performanceService.GetRTSSMonitoredProcessId();
+                
+                // Traditional window detection (fallback for games RTSS can't hook)
                 var currentWindow = _windowDetectionService.GetCurrentFullscreenWindow();
-                uint pid = currentWindow?.ProcessId ?? 0;
+                uint windowPid = currentWindow?.ProcessId ?? 0;
                 
-                // Update current window information if we have a valid window
-                if (pid != 0 && currentWindow != null)
+                uint targetPid = 0;
+                string detectionMethod = "";
+                
+                // Priority 1: Use RTSS monitored PID if available
+                if (rtssMonitoredPid > 0)
                 {
+                    targetPid = rtssMonitoredPid;
+                    detectionMethod = "RTSS";
+                    
+                    // Get window title for the RTSS monitored process
+                    string rtssWindowTitle = _windowDetectionService.GetWindowTitleByPID(rtssMonitoredPid);
+                    if (!string.IsNullOrWhiteSpace(rtssWindowTitle))
+                    {
+                        // Create a WindowInformation object for the RTSS monitored process
+                        _currentState.Window = new WindowInformation
+                        {
+                            ProcessId = rtssMonitoredPid,
+                            WindowTitle = rtssWindowTitle,
+                            WindowHandle = IntPtr.Zero, // We don't have the handle, but that's OK for RTSS-based detection
+                            IsFullscreen = true // Assume fullscreen since RTSS is monitoring it
+                        };
+                        Console.WriteLine($"UpdateAsync: Using RTSS monitored PID {rtssMonitoredPid} with title '{rtssWindowTitle}'");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"UpdateAsync: RTSS monitoring PID {rtssMonitoredPid} but no window title found");
+                    }
+                }
+                // Priority 2: Fall back to traditional window detection if RTSS has no active monitoring
+                else if (windowPid > 0 && currentWindow != null)
+                {
+                    targetPid = windowPid;
+                    detectionMethod = "Window";
                     _currentState.Window = currentWindow;
+                    Console.WriteLine($"UpdateAsync: Using window detection PID {windowPid} with title '{currentWindow.WindowTitle}'");
                 }
                 
-                // If we found a fullscreen app but aren't monitoring it, start monitoring
-                if (pid != 0 && !_performanceService.IsMonitoring)
+                // Start monitoring if we found a target PID and aren't monitoring it yet
+                if (targetPid > 0 && !_performanceService.IsMonitoring)
                 {
-                    Console.WriteLine($"UpdateAsync detected new fullscreen app (PID: {pid}); starting DXGI monitoring");
+                    Console.WriteLine($"UpdateAsync detected new app via {detectionMethod} (PID: {targetPid}); starting DXGI monitoring");
                     _currentState.IsMonitoring = true;
-                    await StartMonitoringAsync(pid).ConfigureAwait(false);
+                    await StartMonitoringAsync(targetPid).ConfigureAwait(false);
                 }
-                // If PID changed from what we're monitoring, switch to new process
-                else if (pid != 0 && _performanceService.IsMonitoring && _currentState.Window.ProcessId != pid)
+                // Switch monitoring if target PID changed
+                else if (targetPid > 0 && _performanceService.IsMonitoring && _currentState.Performance.MonitoredProcessId != targetPid)
                 {
-                    Console.WriteLine($"UpdateAsync detected PID change: monitoring {_currentState.Window.ProcessId} but found {pid}; switching monitoring");
+                    Console.WriteLine($"UpdateAsync detected PID change via {detectionMethod}: monitoring {_currentState.Performance.MonitoredProcessId} but found {targetPid}; switching monitoring");
                     await StopMonitoringAsync().ConfigureAwait(false);
                     _currentState.IsMonitoring = true;
-                    await StartMonitoringAsync(pid).ConfigureAwait(false);
+                    await StartMonitoringAsync(targetPid).ConfigureAwait(false);
                 }
-                // If no fullscreen app detected but we're still monitoring, check if RTSS monitored process still exists
-                else if (pid == 0 && _performanceService.IsMonitoring)
+                // Stop monitoring if no target found but we're still monitoring something
+                else if (targetPid == 0 && _performanceService.IsMonitoring)
                 {
-                    // Check if the RTSS monitored process still exists (backgrounded/alt-tabbed)
-                    // NOTE: Must check the PID that RTSS is monitoring, not the current window PID!
+                    Console.WriteLine($"UpdateAsync: No target PID found but still monitoring PID {_currentState.Performance.MonitoredProcessId}; stopping monitoring");
+                    await StopMonitoringAsync().ConfigureAwait(false);
+                }
+                // Check if monitored process still exists
+                else if (targetPid == 0 && _performanceService.IsMonitoring)
+                {
                     uint monitoredPid = _currentState.Performance.MonitoredProcessId;
+                    Console.WriteLine($"UpdateAsync: No target found but still monitoring - checking if monitored PID {monitoredPid} still exists");
+                    
                     bool monitoredProcessExists = false;
                     
+                    // Only check if we have a valid monitored PID
                     if (monitoredPid > 0)
                     {
                         try
@@ -207,6 +241,12 @@ namespace InfoPanel.FPS
                             Console.WriteLine($"UpdateAsync: Error checking if RTSS monitored process {monitoredPid} exists: {ex}");
                             monitoredProcessExists = false;
                         }
+                    }
+                    else
+                    {
+                        // If monitored PID is 0, this indicates a state problem - stop monitoring
+                        Console.WriteLine($"UpdateAsync: Monitored PID is 0 but still monitoring - stopping to reset state");
+                        monitoredProcessExists = false;
                     }
 
                     if (monitoredProcessExists)
@@ -247,6 +287,13 @@ namespace InfoPanel.FPS
                     }
                 }
 
+                // Ensure performance data is cleared if not monitoring
+                if (!_performanceService.IsMonitoring)
+                {
+                    _currentState.Performance = new PerformanceMetrics(); // Force reset to 0s
+                    _currentState.Window = new WindowInformation { WindowTitle = "Nothing to capture" };
+                }
+
                 // Update sensors with current state
                 _sensorService.UpdateSensors(_currentState);
 
@@ -255,7 +302,7 @@ namespace InfoPanel.FPS
                 // Log current state for debugging
                 Console.WriteLine($"UpdateAsync - Monitoring: {_performanceService.IsMonitoring}, " +
                                 $"Window PID: {_currentState.Window.ProcessId}, " +
-                                $"Detected PID: {pid}, " +
+                                $"Target PID: {targetPid}, " +
                                 $"FPS: {_currentState.Performance.Fps:F1}, " +
                                 $"Title: {_currentState.Window.WindowTitle}");
             }

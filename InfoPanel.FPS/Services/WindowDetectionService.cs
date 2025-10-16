@@ -283,6 +283,50 @@ namespace InfoPanel.FPS.Services
         }
 
         /// <summary>
+        /// Gets the window title for a specific process ID by finding its main window.
+        /// </summary>
+        /// <param name="processId">The process ID to get the window title for.</param>
+        /// <returns>The window title, or empty string if not found.</returns>
+        public string GetWindowTitleByPID(uint processId)
+        {
+            try
+            {
+                var process = Process.GetProcessById((int)processId);
+                if (process != null && process.MainWindowHandle != IntPtr.Zero)
+                {
+                    string title = GetWindowTitle(new HWND(process.MainWindowHandle));
+                    Console.WriteLine($"WindowDetectionService: Found title for PID {processId}: '{title}'");
+                    return title;
+                }
+
+                // If MainWindowHandle is zero, try to enumerate all windows for this process
+                string foundTitle = "";
+                EnumWindows((hWnd, lParam) =>
+                {
+                    GetWindowThreadProcessId(hWnd, out uint windowPid);
+                    if (windowPid == processId)
+                    {
+                        string title = GetWindowTitle(hWnd);
+                        if (!string.IsNullOrWhiteSpace(title) && title != "Untitled")
+                        {
+                            foundTitle = title;
+                            Console.WriteLine($"WindowDetectionService: Found title for PID {processId} via enumeration: '{title}'");
+                            return false; // Stop enumeration
+                        }
+                    }
+                    return true; // Continue enumeration
+                }, IntPtr.Zero);
+
+                return foundTitle;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"WindowDetectionService: Error getting title for PID {processId}: {ex.Message}");
+                return "";
+            }
+        }
+
+        /// <summary>
         /// Gets the title of the specified window.
         /// </summary>
         private static string GetWindowTitle(HWND hWnd)
@@ -380,15 +424,32 @@ namespace InfoPanel.FPS.Services
                     return false;
                 }
                 
-                // Basic validation
-                if (pid <= 4 || process.MainWindowHandle == IntPtr.Zero)
+                // Check if this is an anti-cheat protected game first
+                string processName = process.ProcessName.ToLowerInvariant();
+                bool isAntiCheatGame = IsAntiCheatProtectedGameByName(processName);
+                
+                // For anti-cheat games, skip the MainWindow requirement as they often have special window handling
+                if (isAntiCheatGame)
                 {
-                    Console.WriteLine($"PID validation - PID: {pid}, MainWindow: {process.MainWindowHandle}, Invalid: basic validation failed");
-                    return false;
+                    Console.WriteLine($"PID validation - Anti-cheat game detected: {pid} ({processName}), skipping MainWindow check");
+                    // Still check basic PID validity
+                    if (pid <= 4)
+                    {
+                        Console.WriteLine($"PID validation - PID: {pid}, Invalid: PID too low");
+                        return false;
+                    }
+                }
+                else
+                {
+                    // Basic validation for regular applications
+                    if (pid <= 4 || process.MainWindowHandle == IntPtr.Zero)
+                    {
+                        Console.WriteLine($"PID validation - PID: {pid}, MainWindow: {process.MainWindowHandle}, Invalid: basic validation failed");
+                        return false;
+                    }
                 }
                 
                 // Exclude common system processes and overlays
-                string processName = process.ProcessName.ToLowerInvariant();
                 string[] excludedProcesses = 
                 {
                     "dwm", "explorer", "winlogon", "csrss", "lsass", "services", "svchost",
@@ -420,6 +481,45 @@ namespace InfoPanel.FPS.Services
         }
 
         /// <summary>
+        /// Checks if a process name belongs to a known anti-cheat protected game.
+        /// </summary>
+        private static bool IsAntiCheatProtectedGameByName(string processName)
+        {
+            // List of known anti-cheat protected games that may block window detection
+            string[] antiCheatGames = 
+            {
+                "bf6",           // Battlefield 6 (EAC)
+                "battlefield",   // Battlefield series
+                "valorant",      // Valorant (Vanguard)
+                "apex",          // Apex Legends (EAC)
+                "fortnite",      // Fortnite (BattlEye)
+                "pubg",          // PUBG (BattlEye)
+                "tslgame_be",    // PUBG: Battlegrounds (BattlEye)
+                "rainbow6",      // Rainbow Six Siege (BattlEye)
+                "r6",            // Rainbow Six Siege
+                "hunt",          // Hunt: Showdown (EAC)
+                "deadbydaylight", // Dead by Daylight (EAC)
+                "rust",          // Rust (EAC)
+                "tarkov",        // Escape from Tarkov (BattlEye)
+                "squad",         // Squad (EAC)
+                "rocketleague",  // Rocket League (Psyonix anti-cheat)
+                "gzw",           // Gray Zone Warfare
+                "greyzonewarf",  // Gray Zone Warfare (alternative name)
+                "grayzonewarfare" // Gray Zone Warfare (alternative name)
+            };
+            
+            foreach (string antiCheatGame in antiCheatGames)
+            {
+                if (processName.Contains(antiCheatGame))
+                {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        /// <summary>
         /// Checks if a process is a known anti-cheat protected game that should be monitored regardless of fullscreen detection.
         /// </summary>
         private static bool IsAntiCheatProtectedGame(uint pid)
@@ -440,6 +540,7 @@ namespace InfoPanel.FPS.Services
                     "apex",          // Apex Legends (EAC)
                     "fortnite",      // Fortnite (BattlEye)
                     "pubg",          // PUBG (BattlEye)
+                    "tslgame_be",    // PUBG: Battlegrounds (BattlEye)
                     "rainbow6",      // Rainbow Six Siege (BattlEye)
                     "r6",            // Rainbow Six Siege
                     "hunt",          // Hunt: Showdown (EAC)

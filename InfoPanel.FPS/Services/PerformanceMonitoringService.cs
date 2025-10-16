@@ -161,6 +161,15 @@ namespace InfoPanel.FPS.Services
         }
 
         /// <summary>
+        /// Gets the process ID that RTSS is currently monitoring.
+        /// </summary>
+        /// <returns>The monitored process ID, or 0 if no process is being monitored.</returns>
+        public uint GetRTSSMonitoredProcessId()
+        {
+            return _dxgiService.GetRTSSMonitoredProcessId();
+        }
+
+        /// <summary>
         /// Starts DXGI monitoring.
         /// </summary>
         private async Task StartDXGIMonitoringAsync(uint processId, CancellationToken cancellationToken)

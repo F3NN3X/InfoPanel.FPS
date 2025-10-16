@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v1.1.7-RTSS (October 16, 2025)
+
+- **Critical Bug Fix: FPS Flashing After Game Close**
+  - **Root Cause Fixed**: RTSS shared memory retains stale FPS values for dead processes indefinitely
+  - **Process Validation**: Added process existence check in `GetRTSSMonitoredProcessId()` before returning monitored PIDs
+  - **Eliminated Infinite Loop**: Prevents monitoring start/stop cycles for dead processes with stale RTSS entries
+  - **Clean UI Transitions**: No more FPS value flashing between last recorded value and 0 after games close
+  - **Stale Entry Detection**: Logs and skips RTSS entries for processes that no longer exist
+
+- **Enhanced RTSS Detection Logic**
+  - **Stale Entry Filtering**: Validates process existence when RTSS reports active FPS data (> 0)
+  - **Improved Logging**: Clear distinction between valid detections and stale entry skipping
+  - **Anti-Cheat Compatibility**: Maintains passive RTSS reading approach for maximum game compatibility
+  - **Universal Game Support**: Works with any game RTSS can hook without game-specific workarounds
+
 ## v1.1.6 (October 15, 2025)
 
 - **Thread Safety Improvements**

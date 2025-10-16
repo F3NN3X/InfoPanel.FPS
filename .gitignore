@@ -4,3 +4,4 @@
 # Ignore bin and obj folders anywhere in the project
 **/bin/
 **/obj/
+dev-debug-log
