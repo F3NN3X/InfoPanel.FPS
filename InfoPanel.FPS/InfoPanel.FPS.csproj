@@ -57,7 +57,7 @@
   <!-- ZIP packaging for release builds -->
   <Target Name="CreateReleaseZip" AfterTargets="MoveDependencyFiles" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>
-      <ZipFileName>InfoPanelFPS-v$(Version).zip</ZipFileName>
+      <ZipFileName>InfoPanel.FPS-v$(Version).zip</ZipFileName> <!-- Thanks MermenJazz for reminding me to fix this 🫡 -->
       <ZipOutputPath>$(OutputPath)..\..\$(ZipFileName)</ZipOutputPath>
       <PluginFolderName>InfoPanel.FPS</PluginFolderName>
       <TempZipDir>$(OutputPath)..\temp_zip</TempZipDir>
