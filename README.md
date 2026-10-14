@@ -58,8 +58,7 @@ The `Release Build` workflow builds the plugin, checks the tag matches the cspro
 
 1. Clone or download this repository.
 2. Build it: `dotnet build InfoPanel.FPS.sln -c Release` (.NET 8 SDK; the plugin API comes from `Libs/InfoPanel.Plugins.dll`).
-3. The build writes the plugin folder to `InfoPanel.FPS\bin\Release\net8.0-windows\InfoPanel.FPS-v{version}\InfoPanel.FPS\` and its zip, `InfoPanel.FPS-v{version}.zip`, to `InfoPanel.FPSbinRelease
-et8.0-windows`.
+3. The build writes the plugin folder to `InfoPanel.FPS\bin\Release\net8.0-windows\InfoPanel.FPS-v{version}\InfoPanel.FPS\` and its zip, `InfoPanel.FPS-v{version}.zip`, to `InfoPanel.FPS\bin\Release\net8.0-windows\`.
 4. Copy the `InfoPanel.FPS` folder to `C:\ProgramData\InfoPanel\plugins\`, or import the zip in InfoPanel.
 
 ## Usage
