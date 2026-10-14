@@ -1,0 +1,107 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore InfoPanel.FPS/InfoPanel.FPS.csproj
+
+    - name: Build Plugin
+      run: dotnet build InfoPanel.FPS/InfoPanel.FPS.csproj --configuration Release --no-restore
+
+    - name: Get Version from Project
+      id: get_version
+      shell: pwsh
+      run: |
+        [xml]$csproj = Get-Content "InfoPanel.FPS/InfoPanel.FPS.csproj"
+        $versionNode = $csproj.SelectSingleNode("//Version")
+        if ($null -eq $versionNode) {
+            Write-Error "Could not find <Version> tag in .csproj file"
+            exit 1
+        }
+        $version = $versionNode.InnerText.Trim()
+        echo "Detected Version: '$version'"
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+    - name: Check tag matches version
+      if: startsWith(github.ref, 'refs/tags/')
+      shell: pwsh
+      env:
+        REF_NAME: ${{ github.ref_name }}
+        VERSION: ${{ steps.get_version.outputs.VERSION }}
+      run: |
+        if ($env:REF_NAME -ne "v$env:VERSION") {
+            Write-Error "Tag $env:REF_NAME does not match csproj version $env:VERSION"
+            exit 1
+        }
+
+    - name: Package Plugin
+      shell: pwsh
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $sourcePath = "InfoPanel.FPS\bin\Release\net8.0-windows\InfoPanel.FPS-v$version\InfoPanel.FPS"
+        $zipName = "InfoPanel.FPS-v$version.zip"
+        if (Test-Path $sourcePath) {
+            Compress-Archive -Path "$sourcePath" -DestinationPath $zipName -ErrorAction Stop
+        } else {
+            Write-Error "Build output directory not found at $sourcePath"
+            exit 1
+        }
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: InfoPanel.FPS-v${{ steps.get_version.outputs.VERSION }}
+        path: InfoPanel.FPS-v${{ steps.get_version.outputs.VERSION }}.zip
+
+    - name: Get Current Date
+      id: get_date
+      shell: pwsh
+      run: echo "DATE=$(Get-Date -Format 'yyyy-MM-dd')" >> $env:GITHUB_OUTPUT
+
+    - name: Extract Release Notes
+      id: extract_release_notes
+      shell: pwsh
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $changelog = Get-Content "CHANGELOG.md"
+        $recording = $false
+        $notes = @()
+        foreach ($line in $changelog) {
+            if ($line -match "^## \[?v?$([regex]::Escape($version))\]?") { $recording = $true; continue }
+            if ($recording -and $line -match "^## ") { break }
+            if ($recording) { $notes += $line }
+        }
+        $body = ($notes -join "`n").Trim()
+        if ([string]::IsNullOrWhiteSpace($body)) { $body = "See CHANGELOG.md for details." }
+        Set-Content -Path "release_notes.md" -Value $body
+        echo "NOTES_PATH=release_notes.md" >> $env:GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: InfoPanel.FPS-v${{ steps.get_version.outputs.VERSION }}.zip
+        body_path: ${{ steps.extract_release_notes.outputs.NOTES_PATH }}
+        name: "v${{ steps.get_version.outputs.VERSION }} - ${{ steps.get_date.outputs.DATE }}"
+        draft: false
+        prerelease: false
