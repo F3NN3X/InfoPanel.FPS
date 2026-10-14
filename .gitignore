@@ -1,5 +1,6 @@
 # Ignore all folders starting with a dot anywhere in the project
 **/.*/
+!.github/
 
 # Ignore bin and obj folders anywhere in the project
 **/bin/
